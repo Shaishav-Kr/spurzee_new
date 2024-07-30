@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +17,7 @@
             align-items: center;
             height: 100vh;
         }
+
         .container {
             width: 90%;
             max-width: 800px;
@@ -28,28 +30,33 @@
             flex-direction: column;
             align-items: center;
         }
+
         h2 {
             text-align: center;
             margin-bottom: 25px;
             color: #333;
         }
+
         form {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
+
         .form-group {
             width: 100%;
             margin-bottom: 20px;
         }
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
             color: #555;
             font-weight: 700;
         }
-        .form-group input, 
+
+        .form-group input,
         .form-group select {
             width: 100%;
             padding: 12px;
@@ -58,12 +65,14 @@
             box-sizing: border-box;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
-        .form-group input:focus, 
+
+        .form-group input:focus,
         .form-group select:focus {
             border-color: #007bff;
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
             outline: none;
         }
+
         .form-group button {
             width: 100%;
             padding: 15px;
@@ -75,9 +84,11 @@
             font-size: 18px;
             transition: background-color 0.3s ease;
         }
+
         .form-group button:hover {
             background-color: #0056b3;
         }
+
         .error-message {
             color: red;
             text-align: center;
@@ -85,6 +96,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h2>User Registration</h2>
@@ -106,12 +118,31 @@
                 <input type="tel" id="phone" name="phone" required>
             </div>
             <div class="form-group">
-                <label for="learning">Trading Learning</label>
-                <select id="learning" name="learning" required>
-                    <option value="" disabled selected>Select an option</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
+                <label for="trader_type">Trader Type</label>
+                <div>
+                    <input type="checkbox" id="scalper" name="trader_type[]" value="Scalper">
+                    <label for="scalper">Scalper</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="intraday" name="trader_type[]" value="Intraday">
+                    <label for="intraday">Intraday</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="swing" name="trader_type[]" value="Swing">
+                    <label for="swing">Swing</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="investor" name="trader_type[]" value="Investor">
+                    <label for="investor">Investor</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="option_buyer" name="trader_type[]" value="Option Buyer">
+                    <label for="option_buyer">Option Buyer</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="option_seller" name="trader_type[]" value="Option Seller">
+                    <label for="option_seller">Option Seller</label>
+                </div>
             </div>
             <div class="form-group">
                 <label for="experience">Trading Experience in Years</label>
@@ -134,4 +165,5 @@
         </form>
     </div>
 </body>
+
 </html>
