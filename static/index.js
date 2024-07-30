@@ -113,8 +113,35 @@ async function selectStock(row) {
     console.log(currentOHLC[lastCandle.time]);
     console.log(lastCandle);
   }
+  srLineSeries.forEach(series => chart.removeSeries(series));
+  srLineSeries = [];
+  trendlineSeries.forEach(series => chart.removeSeries(series));
+  trendlineSeries = [];
+  ibars.forEach(series => chart.removeSeries(series));
+  ibars = [];
+  vShapes.forEach(series => chart.removeSeries(series));
+  vShapes = [];
+  headAndShoulders.forEach(series => chart.removeSeries(series));
+  headAndShoulders = [];
+  doubleTops.forEach(series => chart.removeSeries(series));
+  doubleTops = [];
   if (selectedOptions.includes('sup-res')) {
-    fetchAndDrawSupportResistance(symbol, interval);
+    await fetchAndDrawSupportResistance(symbol, interval);
+  }
+  if (selectedOptions.includes('trlines')) {
+    await fetchAndDrawTrendlines(symbol, interval);
+  }
+  if (selectedOptions.includes('ibarss')) {
+    await fetchAndDrawIbars(symbol, interval);
+  }
+  if (selectedOptions.includes('vshape')) {
+    await fetchAndDrawIbars(symbol, interval);
+  }
+  if (selectedOptions.includes('head-and-shoulders')) {
+    await fetchAndDrawHeadAndShoulders(symbol, interval);
+  }
+  if (selectedOptions.includes('double-tops')) {
+    await fetchAndDrawDoubleTops(symbol, interval);
   }
 }
 
@@ -124,7 +151,9 @@ let srLineSeries = [];
 async function fetchAndDrawSupportResistance(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(`/support-resistance?symbol=${symbol}&interval=${interval}`);
+    const nsr = document.getElementById('num-sr-lines').value;
+    const group_size = document.getElementById('group-size').value;
+    const response = await fetch(`/support-resistance?symbol=${symbol}&interval=${interval}&nsr=${nsr}&group_size=${group_size}`);
     const srGroups = await response.json();
     
     // Clear existing SR line series
@@ -159,6 +188,272 @@ async function fetchAndDrawSupportResistance(symbol, interval) {
   }
 }
 
+let trendlineSeries = [];
+
+// Fetch and draw trendlines with angle calculation considering scaling
+async function fetchAndDrawTrendlines(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/trend-lines?symbol=${symbol}&interval=${interval}`);
+    const trendlineData = await response.json();
+    // Clear existing trendline series
+    trendlineSeries.forEach(series => chart.removeSeries(series));
+    trendlineSeries = [];
+
+    // Get the conversion functions from the chart
+    // const priceToCoordinate = chart.priceScale().priceToCoordinate.bind(chart.priceScale());
+    // const timeToCoordinate = chart.timeScale().timeToCoordinate.bind(chart.timeScale());
+    
+    
+    trendlineData.forEach(line => {
+      let [ x0, y0, x1, y1, colorCode ] = line;
+      // Calculate scaled coordinates
+      // const x0Coord = chart.timeScale().timeToCoordinate(x0);
+      // const y0Coord = candleSeries.priceScale().priceToCoordinate(y0);
+      // const x1Coord = chart.timeScale().timeToCoordinate(x1);
+      // const y1Coord = candleSeries.priceScale().priceToCoordinate(y1);
+      let x0Unix = parseDateTimeToUnix(x0);
+      let x1Unix = parseDateTimeToUnix(x1);
+
+      if (x0Unix === null || x1Unix === null) {
+        console.error('Invalid date conversion for:', line);
+        return;
+      }
+      const linecolor = colorCode === 1 ? 'green' : 'red';
+      if (x0Unix > x1Unix) {
+        let temp = x0Unix;
+        x0Unix = x1Unix;
+        x1Unix = temp;
+
+        temp = y0;
+        y0 = y1;
+        y1 = temp;
+      }
+
+      // Calculate angle in degrees considering the scaling
+      // const angle = Math.atan2(y1Coord - y0Coord, x1Coord - x0Coord) * (180 / Math.PI);
+      // console.log(angle);
+      // Convert x0, y0, x1, y1 to the format expected by Lightweight Charts
+      const lineSeries = chart.addLineSeries({
+        color: linecolor,  // or any color you prefer
+        lineWidth: 1,
+      });
+      
+      lineSeries.setData([
+        { time: x0Unix, value: y0 },
+        { time: x1Unix, value: y1 }
+      ]);
+
+      trendlineSeries.push(lineSeries);
+
+      // Optional: Add text labels for the angle
+      // chart.addAnnotation({
+      //   time: (x0 + x1) / 2,
+      //   price: (y0 + y1) / 2,
+      //   // text: `${angle.toFixed(2)}鴔節,
+      //   // color: linecolor,
+      // });
+      
+    });
+
+    hideSpinner();
+  } catch (error) {
+    console.error('error is' + error);
+    hideSpinner();
+  }
+}
+
+let ibars = [];
+
+// Fetch and draw consecutive inside bars
+async function fetchAndDrawIbars(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/inside-bars?symbol=${symbol}&interval=${interval}`);
+    const ibarsData = await response.json();
+
+    // Clear existing inside bar series
+    ibars.forEach(series => chart.removeSeries(series));
+    ibars = [];
+
+    ibarsData.forEach(line => {
+      let { x0, y0, x1, y1 } = line;
+
+      let x0Unix = parseDateTimeToUnix(x0);
+      let x1Unix = parseDateTimeToUnix(x1);
+
+      if (x0Unix === null || x1Unix === null) {
+        console.error('Invalid date conversion for:', line);
+        return;
+      }
+
+      // Ensure (x0, y0) is to the left of (x1, y1)
+      if (x0Unix > x1Unix) {
+        [x0Unix, x1Unix] = [x1Unix, x0Unix];
+        [y0, y1] = [y1, y0];
+      }
+
+      // Define the rectangle series using LineSeries
+      const rectangleSeries = chart.addLineSeries({
+        color: 'rgba(0, 150, 136, 0.6)', // Semi-transparent color
+        lineWidth: 2,
+      });
+
+      // Draw rectangle using four lines
+      const rectangleData = [
+        { time: x0Unix, value: y0 }, // Bottom left
+        { time: x1Unix, value: y0 }, // Bottom right
+        { time: x1Unix, value: y1 }, // Top right
+        { time: x0Unix, value: y1 }, // Top left
+        { time: x0Unix, value: y0 }, // Close the rectangle
+      ];
+
+      rectangleSeries.setData(rectangleData);
+
+      ibars.push(rectangleSeries);
+    });
+
+    hideSpinner();
+  } catch (error) {
+    console.error('Error:', error);
+    hideSpinner();
+  }
+}
+
+let vShapes = [];
+
+// Fetch and draw V-shape patterns
+async function fetchAndDrawVShapes(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/v-shape-patterns?symbol=${symbol}&interval=${interval}`);
+    const vShapesData = await response.json();
+
+    // Clear existing V-shape series
+    vShapes.forEach(series => chart.removeSeries(series));
+    vShapes = [];
+
+    vShapesData.forEach(shape => {
+      const { x0, y0, x1, y1, x2, y2 } = shape;
+
+      const x0Unix = parseDateTimeToUnix(x0);
+      const x1Unix = parseDateTimeToUnix(x1);
+      const x2Unix = parseDateTimeToUnix(x2);
+
+      if (x0Unix === null || x1Unix === null || x2Unix === null) {
+        console.error('Invalid date conversion for:', shape);
+        return;
+      }
+
+      // Define the line series for the V-shape pattern
+      const vShapeSeries = chart.addLineSeries({
+        color: 'blue',
+        lineWidth: 2,
+      });
+
+      // Draw V-shape using three lines
+      const vShapeData = [
+        { time: x0Unix, value: y0 },
+        { time: x1Unix, value: y1 },
+        { time: x2Unix, value: y2 },
+      ];
+
+      vShapeSeries.setData(vShapeData);
+
+      vShapes.push(vShapeSeries);
+    });
+
+    hideSpinner();
+  } catch (error) {
+    console.error('Error:', error);
+    hideSpinner();
+  }
+}
+
+let doubleTops = [];
+
+// Fetch and draw double tops
+async function fetchAndDrawDoubleTops(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/double-tops?symbol=${symbol}&interval=${interval}`);
+    const doubleTopsData = await response.json();
+
+    // Clear existing double tops series
+    doubleTops.forEach(series => chart.removeSeries(series));
+    doubleTops = [];
+
+    doubleTopsData.forEach(line => {
+      let { x0, y0, x1, y1 } = line;
+
+      let x0Unix = parseDateTimeToUnix(x0);
+      let x1Unix = parseDateTimeToUnix(x1);
+
+      if (x0Unix === null || x1Unix === null) {
+        console.error('Invalid date conversion for:', line);
+        return;
+      }
+
+      // Define the line series for the double top pattern
+      const doubleTopSeries = chart.addLineSeries({
+        color: 'blue',
+        lineWidth: 2,
+      });
+
+      // Draw double top lines
+      const doubleTopData = [
+        { time: x0Unix, value: y0 },
+        { time: x1Unix, value: y1 }
+      ];
+
+      doubleTopSeries.setData(doubleTopData);
+
+      doubleTops.push(doubleTopSeries);
+    });
+
+    hideSpinner();
+  } catch (error) {
+    console.error('Error:', error);
+    hideSpinner();
+  }
+}
+let headAndShoulders = [];
+
+// Fetch and draw head-and-shoulders patterns
+async function fetchAndDrawHeadAndShoulders(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/head-and-shoulders?symbol=${symbol}&interval=${interval}`);
+    const headAndShouldersData = await response.json();
+
+    // Clear existing head-and-shoulders series
+    headAndShoulders.forEach(series => chart.removeSeries(series));
+    headAndShoulders = [];
+
+    headAndShouldersData.forEach(pattern => {
+      let patternData = pattern.map(point => ({
+        time: parseDateTimeToUnix(point.x),
+        value: point.y
+      }));
+
+      // Define the line series for the head-and-shoulders pattern
+      const headAndShouldersSeries = chart.addLineSeries({
+        color: 'blue',
+        lineWidth: 2,
+      });
+
+      headAndShouldersSeries.setData(patternData);
+
+      headAndShoulders.push(headAndShouldersSeries);
+    });
+
+    hideSpinner();
+  } catch (error) {
+    console.error('Error:', error);
+    hideSpinner();
+  }
+}
+
 // Update the change event listener for the interval select
 document.getElementById('interval-select').addEventListener('change', async (event) => {
   const interval = event.target.value;
@@ -175,10 +470,36 @@ document.getElementById('interval-select').addEventListener('change', async (eve
       console.log(currentOHLC[lastCandle.time]);
       console.log(lastCandle);
     }
+    srLineSeries.forEach(series => chart.removeSeries(series));
+    srLineSeries = [];
+    trendlineSeries.forEach(series => chart.removeSeries(series));
+    trendlineSeries = [];
+    ibars.forEach(series => chart.removeSeries(series));
+    ibars = [];
+    vShapes.forEach(series => chart.removeSeries(series));
+    vShapes = [];
+    headAndShoulders.forEach(series => chart.removeSeries(series));
+    headAndShoulders = [];
+    doubleTops.forEach(series => chart.removeSeries(series));
+    doubleTops = [];
     if (selectedOptions.includes('sup-res')) {
-      fetchAndDrawSupportResistance(symbol, interval);
+      await fetchAndDrawSupportResistance(symbol, interval);
     }
-
+    if (selectedOptions.includes('trlines')) {
+      await fetchAndDrawTrendlines(symbol, interval);
+    }
+    if (selectedOptions.includes('ibarss')) {
+      await fetchAndDrawIbars(symbol, interval);
+    }
+    if (selectedOptions.includes('vshape')) {
+      await fetchAndDrawVShapes(symbol, interval);
+    }
+    if (selectedOptions.includes('head-and-shoulders')) {
+      await fetchAndDrawHeadAndShoulders(symbol, interval);
+    }
+    if (selectedOptions.includes('double-tops')) {
+      await fetchAndDrawDoubleTops(symbol, interval);
+    }
   }
 });
 
@@ -236,7 +557,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // }
 let selectedOptions = [];
 
-
+document.getElementById('refresh-button').addEventListener('click', () => {
+  chart.timeScale().resetTimeScale();
+});
 // Pattern Select Dropdown 
 document.addEventListener('DOMContentLoaded', () => {
   const dropdownHeader = document.getElementById('dropdown-header');
@@ -272,6 +595,41 @@ document.addEventListener('DOMContentLoaded', () => {
           srLineSeries.forEach(series => chart.removeSeries(series));
           srLineSeries = [];
         }
+        if (selectedOptions.includes('trlines')) {
+          fetchAndDrawTrendlines(symbol, interval);
+        }
+        else{
+          trendlineSeries.forEach(series => chart.removeSeries(series));
+          trendlineSeries = [];
+        }
+        if (selectedOptions.includes('ibarss')) {
+          fetchAndDrawIbars(symbol, interval);
+        }
+        else{
+          ibars.forEach(series => chart.removeSeries(series));
+          ibars = [];
+        }
+        if (selectedOptions.includes('head-and-shoulders')) {
+          fetchAndDrawHeadAndShoulders(symbol, interval);
+        }
+        else{
+          headAndShoulders.forEach(series => chart.removeSeries(series));
+          headAndShoulders = [];
+        }
+        if (selectedOptions.includes('double-tops')) {
+          fetchAndDrawDoubleTops(symbol, interval);
+        }
+        else{
+          doubleTops.forEach(series => chart.removeSeries(series));
+          doubleTops = [];
+        } 
+        if (selectedOptions.includes('vshape')) {
+          fetchAndDrawVShapes(symbol, interval);
+        }
+        else{
+          vShapes.forEach(series => chart.removeSeries(series));
+          vShapes = [];
+        } 
       }
       
     });
@@ -355,7 +713,7 @@ window.onload = () => {
   }
 };
 
-const accessTocken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjE3MTMxMjAsImV4cCI6MTcyMTc4MTA0MCwibmJmIjoxNzIxNzEzMTIwLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbW4wSGcwSWNDM2ZXMi01MnZhMHdYZGMtTDFEcjFEcVVRaG9qc2NDbVpBSlZ6dEc1Rm1yNDNDZHhHaHZnQWhjcXhZcXNMVzBHUDNuRV82Sy1uNkNBYTRFajMtT1FtTUVVYU5OdTRwVFVBZzNCTEw4Zz0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.QIcXvdM5b_sKcTk-yC9-1bSOMprH5dTU4mGMeQU7V1k"
+const accessTocken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjIzMTI0MzAsImV4cCI6MTcyMjM4NTgxMCwibmJmIjoxNzIyMzEyNDMwLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXFHYnVqX3oxSVlGVGlFeHVfYTJVQkNFOU9yODdRMFJQOVZjTU8wRWpHR1pSNURNaWRFUXhwdkJMNEJoeUxwYmdIMVFqblFURkp4enE3MGp1UGk2SnFzdnBRZXA4TVA4WmxUS1BCQnN6Rzk1QWFhcz0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.qFC2Rb1tv-zGlO_b9uvWDuJApZ_sQkAKbFlEVrY9ZAM"
 
 var skt = fyersDataSocket.getInstance(accessTocken);
 
@@ -421,9 +779,16 @@ function onmsg(message) {
   // console.log(message);
   const selectedRow = document.querySelector('.stock-row.selected');
   const symbol = selectedRow.getAttribute('data-symbol');
+  const row = document.querySelector(`tr[data-symbol="${symbol}"]`);
+  const lastPriceCell = row.querySelector('.last-price');
+  const changeCell = row.querySelector('.change');
+  const changePercentageCell = row.querySelector('.change-percentage');
   if (parsedData.symbol === symbol) {
     const time = parsedData.exch_feed_time;
     const ltp = parsedData.ltp;
+    lastPriceCell.textContent = parsedData.ltp;
+    changeCell.textContent = parsedData.ch;
+    changePercentageCell.textContent = parsedData.chp;
     updateOHLC(ltp, time);
   }
 }

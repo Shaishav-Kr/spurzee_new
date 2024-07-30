@@ -43,14 +43,25 @@
           Select Patterns
         </div>
         <div class="dropdown-content" id="dropdown-content">
-          <div class="option" data-value="sup-res">S&R Zones</div>
-          <div class="option" data-value="head-shoulders">Head and Shoulders</div>
-          <div class="option" data-value="double-top">Double Top</div>
-          <div class="option" data-value="triangle">Triangle</div>
-          <div class="option" data-value="wedge">Wedge</div>
-          <div class="option" data-value="flag">Flag</div>
+          <div class="option" data-value="sup-res">S&R Zones
+            <input type="number" id="num-sr-lines" placeholder="No of SR" min = "4" max = "12"  style=" width: 30px; margin-left: 40px;" />
+            <input type="number" id="group-size" placeholder="Group size SR" style=" width: 30px; margin-left: 10px;" />
+          </div>
+          <div class="option" data-value="trlines">Trend Lines</div>
+          <div class="option" data-value="ibarss">Ibars</div>
+          <div class="option" data-value="head-and-shoulders">Head and Shoulders</div>
+          <div class="option" data-value="double-tops">Double Top</div>
+          <div class="option" data-value="vshape">VShape</div>
+          <!--<div class="option" data-value="triangle">Triangle</div>-->
+          <!--<div class="option" data-value="wedge">Wedge</div>-->
+          <!--<div class="option" data-value="flag">Flag</div>-->
         </div>
       </div>
+      <button id="refresh-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path d="M12 4V1L8 5l4 4V6c4.41 0 8 3.59 8 8s-3.59 8-8 8-8-3.59-8-8H4c0 5.52 4.48 10 10 10s10-4.48 10-10S14.52 4 9 4H12z"/>
+            </svg>
+          </button>
     </div>
 
     <div class="top-bar-right">
@@ -86,57 +97,57 @@
         <tbody>
             <tr class="stock-row selected" data-symbol="NSE:NIFTY50-INDEX" onclick="selectStock(this)">
                 <td>Nifty 50</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="NSE:NIFTYBANK-INDEX" onclick="selectStock(this)">
                 <td>Banknifty</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="MCX:SILVER24SEPFUT" onclick="selectStock(this)">
-              <td>Silver Sep Fut<td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <td>Silver Sep Fut</td>
+              <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
           </tr>
             <tr class="stock-row" data-symbol="NSE:ASIANPAINT-EQ" onclick="selectStock(this)">
                 <td>Asian Paints</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="NSE:RELIANCE-EQ" onclick="selectStock(this)">
                 <td>Reliance</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="NSE:SBIN-EQ" onclick="selectStock(this)">
                 <td>SBI</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="NSE:KOTAKBANK-EQ" onclick="selectStock(this)">
                 <td>Kotak Bank</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="NSE:HDFCBANK-EQ" onclick="selectStock(this)">
                 <td>Hdfc Bank</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
             <tr class="stock-row" data-symbol="NSE:BAJAJFINSV-EQ" onclick="selectStock(this)">
                 <td>Bajaj Finserve</td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="last-price"></td>
+                <td class="change"></td>
+                <td class="change-percentage"></td>
             </tr>
         </tbody>
     </table>

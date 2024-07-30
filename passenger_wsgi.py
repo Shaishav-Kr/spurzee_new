@@ -167,9 +167,9 @@ import pandas as pd
 
 # access_token = response['access_token']
 
-with open("abcd.txt", 'r') as r:
-    access_token = r.read()
-
+# with open("abcd.txt", 'r') as r:
+#     access_token = r.read()
+access_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjIzMTI0MzAsImV4cCI6MTcyMjM4NTgxMCwibmJmIjoxNzIyMzEyNDMwLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXFHYnVqX3oxSVlGVGlFeHVfYTJVQkNFOU9yODdRMFJQOVZjTU8wRWpHR1pSNURNaWRFUXhwdkJMNEJoeUxwYmdIMVFqblFURkp4enE3MGp1UGk2SnFzdnBRZXA4TVA4WmxUS1BCQnN6Rzk1QWFhcz0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.qFC2Rb1tv-zGlO_b9uvWDuJApZ_sQkAKbFlEVrY9ZAM'
 client_id = "DZO41L3M36-100"
 fyers = fyersModel.FyersModel(
     client_id=client_id, is_async=False, token=access_token, log_path=os.getcwd())
@@ -216,7 +216,7 @@ db_config4 = {
 }
 
 
-def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, sr_visible, nsr, trline, dtop, srcands, th, ibars, ema5,box, bth, nbc, hsind, vshape, mestar):
+def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, sr_visible, nsr, trline, dtop, srcands, th, ibars, ema5,box, bth, nbc, hsind, vshape, mestar, ivbars):
     
     con = mysql.connector.connect(**db_config3)
     cur = con.cursor()
@@ -706,9 +706,29 @@ def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, s
             )
     if dtop == 'true':
         def calculate_slope_angle(x, y):
-            model = LinearRegression().fit(x, y)
+            # Fit a linear regression model
+            model = LinearRegression().fit(x.reshape(-1, 1), y)
+            
+            # Get the slope from the linear regression model
             slope = model.coef_[0]
-            angle_deg = math.degrees(math.atan(slope))
+            
+            # Calculate the difference in high and low for scaling
+            diff = max(df['high']) - min(df['low'])
+            
+            # Calculate the scaled dy and dx
+            dx = max(x) - min(x)
+            dy = slope * dx * (len(df) / diff)
+            
+            # Calculate the angle using arctangent
+            angle_rad = math.atan2(dy, dx)
+            
+            # Convert radians to degrees
+            angle_deg = math.degrees(angle_rad)
+            #angle_deg = abs(angle_deg)
+            
+            if angle_deg > 90:
+                angle_deg = 180-angle_deg
+                
             return slope, angle_deg
         srcands=10
         sup = df[df.low == df.low.rolling(srcands, center=True).min()].low
@@ -743,7 +763,7 @@ def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, s
                 end_index = pat[0]
 
                 # Check if the overall trend is upwards
-                if df['low'].iloc[start_index:end_index].iloc[-1] > df['low'].iloc[start_index:end_index].iloc[0]:
+                if 'true':
                     # Linear regression between first top and middle bottom
                     y1 = df['low'].loc[pat[0]:pat[1]].values
                     x1 = np.arange(len(y1)).reshape(-1, 1)
@@ -754,7 +774,7 @@ def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, s
                     x2 = np.arange(len(y2)).reshape(-1, 1)
                     slope2, angle2 = calculate_slope_angle(x2, y2)
 
-                    if angle1 < -60 and angle2 > 60:
+                    if angle1 < -65 and angle2 > 65:
                         fig.add_shape(type='line', x0=df['date'][pat[0]], y0=res.iloc[j - 2],
                                     x1=df['date'][pat[2]], y1=res.iloc[j - 1])
                         print(pat, "test", angle1, angle2)
@@ -762,61 +782,7 @@ def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, s
             if len(pat) == 3:
                 pat.pop(0)
                 pat.pop(0)
-        # sup = df[df.low == df.low.rolling(srcands, center=True).min()].low
-        # filtered_supports_indices = []
-        # for idx, support in sup.items():
-        #     left_avg_fall = np.mean(
-        #         abs(df.low.iloc[idx - int(srcands/2):idx] - support))/support
-        #     right_avg_fall = np.mean(
-        #         abs(df.low.iloc[idx:idx + int(srcands/2)] - support))/support
-
-        # # If both left and right average falls are greater than the threshold, keep the support
-        #     if left_avg_fall > th and right_avg_fall > th:
-        #         filtered_supports_indices.append(idx)
-
-        # sup = df.iloc[filtered_supports_indices].low
-        # res = df[df.high == df.high.rolling(srcands, center=True).max()].high
-        # filtered_indices = []
-        # for idx, resis in res.items():
-        #     left_avg_fall = np.mean(
-        #         abs(df.high.iloc[idx - int(srcands/2):idx] - resis))/resis
-        #     right_avg_fall = np.mean(
-        #         abs(df.high.iloc[idx:idx + int(srcands/2)] - resis))/resis
-
-        # # If both left and right average falls are greater than the threshold, keep the support
-        #     if left_avg_fall > th and right_avg_fall > th:
-        #         filtered_indices.append(idx)
-
-        # res = df.iloc[filtered_indices].high
-        # price_diff = np.mean(df['high'] - df['low'])/2
-        # pat = []
-        # max_bar_diff = 50
-        # min_bar_diff = 7
-        # i = 1
-        # j = 0
-        # flag = 1
-        # while i <= sup.size and j < res.size:
-        #     if flag == 0 and i < sup.size:
-        #         if sup.index[i] > pat[0]:
-        #             pat.append(sup.index[i])
-        #             flag = 1
-        #         i += 1
-        #     else:
-        #         if len(pat) == 0 or res.index[j] > pat[len(pat)-1]:
-        #             pat.append(res.index[j])
-        #             flag = 0
-        #         else:
-        #             pat.pop(0)
-        #             pat.insert(0, res.index[j])
-        #         j += 1
-        #     if len(pat) == 3 and pat[2]-pat[0] <= max_bar_diff and pat[2]-pat[1] >= min_bar_diff and pat[1]-pat[0] >= min_bar_diff and abs(res.iloc[j-2]-res.iloc[j-1]) <= price_diff:
-        #         fig.add_shape(type='line', x0=df['date'][pat[0]], y0=res.iloc[j-2],
-        #                       x1=df['date'][pat[2]],
-        #                       y1=res.iloc[j-1]
-        #                       )
-        #     if len(pat) == 3:
-        #         pat.pop(0)
-        #         pat.pop(0)
+        
     if ibars == 'true':
         ibs = pd.Series()
         ibp = pd.Series()
@@ -975,110 +941,111 @@ def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, s
     if hsind=='true':
         sup = df[df.low == df.low.rolling(24, center=True).min()].low
         res = df[df.high == df.high.rolling(24, center=True).max()].high
-        sup=sup.to_frame()
-        sup.columns=['price']
-        sup['val']=1
-        res=res.to_frame()
-        res.columns=['price']
-        res['val']=2
-        lev=sup.combine_first(res)
+        
+        sup = sup.to_frame()
+        sup.columns = ['price']
+        sup['val'] = 1
+        
+        res = res.to_frame()
+        res.columns = ['price']
+        res['val'] = 2
+        
+        lev = sup.combine_first(res)
+        
         def hsf(hs):
-            data=df['close']
-            ls=hs[0]
-            lb=hs[1]
-            head=hs[2]
-            rb=hs[3]
-            rs=hs[4]
-
-            if df['high'][head] <= max( df['high'][ls] , df['high'][rs] ) :
+            data = df['close']
+            ls, lb, head, rb, rs = hs
+            
+            is_normal_hs = df['high'][head] > max(df['high'][ls], df['high'][rs])
+            is_inverted_hs = df['low'][head] < min(df['low'][ls], df['low'][rs])
+            
+            # Determine if it's a valid head and shoulders pattern (normal or inverted)
+            if not (is_normal_hs or is_inverted_hs):
                 return None
-            # r_mid = 0.45 * (data[rs] + data[rb])
-            # l_mid = 0.45 * (data[ls] + data[lb])
-            # if data[ls] < r_mid or data[ls] < rb or data[rs] < l_mid or data[rs]<lb :
-            #     return None
+            
             rh = rs - head
             lh = head - ls
+            
+            # Check head height symmetry
             if rh > 2.5 * lh or lh > 2.5 * rh:
                 return None
+            
             neck_run = rb - lb
-            neck_rise = df['low'][rb] - df['low'][lb]
+            neck_rise = (df['low'][rb] - df['low'][lb]) if is_normal_hs else (df['high'][rb] - df['high'][lb])
             neck_slope = neck_rise / neck_run
-
             head_width = rb - lb
+            
             pat_start = -1
             pat_end = -1
-            f1=0
-            f2=0
+            
+            # Identifying pattern start
             for j in range(1, head_width):
-                
-                    neck1 = df['low'][lb] + (ls - lb - j) * neck_slope
-
-                    if ls - j < 0:
-                        return None
-
-                    if df['low'][ls - j] < neck1:
-                        pat_start = ls - j
-                        break
+                neck1 = df['low'][lb] + (ls - lb - j) * neck_slope if is_normal_hs else df['high'][lb] + (ls - lb - j) * neck_slope
+                if ls - j < 0:
+                    return None
+                if (df['low'][ls - j] < neck1) if is_normal_hs else (df['high'][ls - j] > neck1):
+                    pat_start = ls - j
+                    break
+            
+            # Identifying pattern end
             for j in range(1, head_width):
-                    neck2 = df['low'][lb] + (rs - lb + j) * neck_slope
-
-                    if rs + j > len(df)-1:
-                        return None
-
-                    if df['low'][rs + j] < neck2:
-                        pat_end = rs + j
-                        
-                        break
-
+                neck2 = df['low'][lb] + (rs - lb + j) * neck_slope if is_normal_hs else df['high'][lb] + (rs - lb + j) * neck_slope
+                if rs + j > len(df) - 1:
+                    return None
+                if (df['low'][rs + j] < neck2) if is_normal_hs else (df['high'][rs + j] > neck2):
+                    pat_end = rs + j
+                    break
+            
             if pat_start == -1 or pat_end == -1:
                 return None
-            hs.insert(0,pat_start)
+            
+            hs.insert(0, pat_start)
             hs.append(pat_end)
-            f=0
-            for i in range(0,len(hs)):
+            
+            # Plotting the pattern
+            f = 0
+            for i in range(len(hs)):
                 if hs[i] == pat_start:
                     continue
-                if f==0:
-                    col1='low'
-                    col2='high'
-                    f=1
+                if f == 0:
+                    col1 = 'low' if is_normal_hs else 'high'
+                    col2 = 'high' if is_normal_hs else 'low'
+                    f = 1
                 else:
-                    col1='high'
-                    col2='low'
-                    f=0
+                    col1 = 'high' if is_normal_hs else 'low'
+                    col2 = 'low' if is_normal_hs else 'high'
+                    f = 0
                 fig.add_shape(type='line', x0=df['date'][hs[i-1]], y0=df[col1][hs[i-1]],
-                            x1=df['date'][hs[i]], 
-                            y1=df[col2][hs[i]],
-                            line=dict(color='blue', width=2)
-                            )
-            fig.add_shape(type='line', x0=df['date'][hs[0]], y0=df['low'][hs[0]],
-                            x1=df['date'][hs[len(hs)-1]], 
-                            y1=df['low'][hs[len(hs)-1]],
-                            line=dict(color='black', width=2)
-                            )
-        c=[]
-        hs=None
-        p=lev.index[0]
+                            x1=df['date'][hs[i]], y1=df[col2][hs[i]],
+                            line=dict(color='blue', width=2))
+            
+            fig.add_shape(type='line', x0=df['date'][hs[0]], y0=df['low'][hs[0]] if is_normal_hs else df['high'][hs[0]],
+                        x1=df['date'][hs[-1]], y1=df['low'][hs[-1]] if is_normal_hs else df['high'][hs[-1]],
+                        line=dict(color='black', width=2))
+        
+        c = []
+        p = lev.index[0]
         for i in lev.index:
-            if len(c)==0:
-                if lev['val'][i]==2:
+            if not c:
+                if lev['val'][i] == 2:
                     c.append(i)
-                else :
-                    p=i
-                    continue
-            else :
-                if lev['val'][i]!=lev['val'][p] and i-p>3:
-                    c.append(i)
-                elif lev['val'][i]==1:
-                    c=[]
                 else:
-                    c=[i]
-            if len(c)==5:
+                    p = i
+                    continue
+            else:
+                if lev['val'][i] != lev['val'][p] and i - p > 3:
+                    c.append(i)
+                elif lev['val'][i] == 1:
+                    c = []
+                else:
+                    c = [i]
+            
+            if len(c) == 5:
                 if hsf(c):
-                    c=[]
+                    c = []
                 else:
                     c = c[2:]
-            p=i        
+            p = i
     
     if vshape == 'true' :
         sup = df[df.low == df.low.rolling(20, center=True).min()].low
@@ -1115,6 +1082,59 @@ def generate_graph(symbol, start_date, end_date, interval, ema_visible,emaval, s
                             y1=df['low'][i[2]],
                             line=dict(color='blue', width=2)
                             )
+                            
+    if ivbars =='true':
+        def detect_consecutive_ibars(df):
+            consecutive_ibars = [False] * len(df)
+            for i in range(len(df)-1):
+                previous_candle = df.iloc[i]
+
+                j = i + 1
+                count = 0
+                while j < len(df) and \
+                    (df.iloc[j]['high'] < previous_candle['high']) and \
+                    (df.iloc[j]['low'] > previous_candle['low']) and \
+                    (df.iloc[j]['close'] < previous_candle['high']) and \
+                    (df.iloc[j]['open'] > previous_candle['low']):
+                    
+                    count += 1
+                    j += 1
+                
+                if count > 3:
+                    for k in range(i+1, j):
+                        consecutive_ibars[k] = True
+                    # Mark the larger candlestick as well
+                    consecutive_ibars[i] = True
+                        
+            return consecutive_ibars
+        
+        df['ConsecutiveInsideBars'] = detect_consecutive_ibars(df)
+
+
+        # Plot empty squares around consecutive inside bars
+        i = 0
+        while i < len(df):
+            if df['ConsecutiveInsideBars'][i]:
+                start = i
+                while i < len(df) and df['ConsecutiveInsideBars'][i]:
+                    i += 1
+                end = i - 1
+                
+                # Determine the x0 and x1 values, considering the edge cases
+                x0 = df['date'][start - 1] if start > 0 else df['date'][start]
+                x1 = df['date'][end + 1] if end < len(df) - 1 else df['date'][end]
+
+                fig.add_shape(type="rect",
+                            x0=x0, y0=min(df['low'][start:end+1]),
+                            x1=x1, y1=max(df['high'][start:end+1]),
+                            line=dict(color="black"),
+                            fillcolor="rgba(0,0,0,0)")  # Make the box empty
+
+                # Move to the next bar after the current pattern
+                i = end + 1
+            else:
+                i += 1
+
     
     if mestar == 'true' :
         def cal_len(i):
@@ -1373,10 +1393,11 @@ def fetch_latest_data(symbol):
     return rows
 
 dtime_datetime = dt.datetime.now()
+dtime_datetime += timedelta(hours=12, minutes=30)
 dtime = dtime_datetime.strftime("%Y-%m-%d")
 
 def fetch_currentday_data(symbol, interval):
-    
+    interval = int(interval)
     data = {
             "symbol": symbol,
             "resolution": '5S',
@@ -1386,7 +1407,7 @@ def fetch_currentday_data(symbol, interval):
             "cont_flag": "1"
         }
     df = fyers.history(data=data)
-    if 'candles' not in df:
+    if df['s'] == 'no_data':
         return []
     df = pd.DataFrame(df['candles'])
     df.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
@@ -1396,7 +1417,7 @@ def fetch_currentday_data(symbol, interval):
     df_sorted = df.sort_values(by=['date'], ascending=True)
     df = df_sorted.drop_duplicates(subset='date', keep='first')
     df.reset_index(drop=True, inplace=True)
-    df['group'] = (df.index // (int(interval)*12))
+    df['group'] = (df.index // (interval*12))
     df2 = df.groupby('group').agg({
         'date': 'first',
         'open': 'first',
@@ -1523,7 +1544,7 @@ def old_graph():
         end_date = "2024-05-06"
         interval = "15"
         graph = generate_graph(symbol, start_date, end_date,
-                               interval, 'false', 20, 'false', 5, 'false', 'false', 20, 1, 'false', 'false', 'false', 5, 20, 'false', 'false', 'false')
+                               interval, 'false', 20, 'false', 5, 'false', 'false', 20, 1, 'false', 'false', 'false', 5, 20, 'false', 'false', 'false', 'false')
         return render_template('index.html', graph=json.dumps(graph, cls=plotly.utils.PlotlyJSONEncoder), time_intervals=time_intervals, end_date=end_date)
     return redirect(url_for('login'))
 
@@ -1543,7 +1564,7 @@ def update_graph():
         if not nsr:
             nsr = 0
         trline = request.form['trVisible']
-        graph = generate_graph(symbol, start_date, end_date, interval, 'false', 20, sr_visible, nsr, trline, 'false', 20, 1, 'false', 'false', 'false', 5, 'false', 'false', 'false')
+        graph = generate_graph(symbol, start_date, end_date, interval, 'false', 20, sr_visible, nsr, trline, 'false', 20, 1, 'false', 'false', 'false', 5, 'false', 'false', 'false','false')
     else:
         symbol = request.form['watchlist-stocks']
         start_date = request.form['start_date']
@@ -1567,8 +1588,9 @@ def update_graph():
         hsind = request.form['hsind']
         vshape = request.form['vshape']
         mestar = request.form['mestar']
+        ivbars = request.form['ivbars']
         graph = generate_graph(symbol, start_date, end_date,
-                               interval, ema_visible,emaval, sr_visible, nsr, trline, dtop, ndt, th, ibars, ema5,box,bth,nbc,hsind,vshape,mestar)
+                               interval, ema_visible,emaval, sr_visible, nsr, trline, dtop, ndt, th, ibars, ema5,box,bth,nbc,hsind,vshape,mestar, ivbars)
     return json.dumps(graph, cls=plotly.utils.PlotlyJSONEncoder)
 
 @app.route('/submit_stock', methods=['POST'])
@@ -1603,7 +1625,7 @@ def graph():
 @app.route('/stock-data')
 def get_data():
     symbol = request.args.get('symbol', 'NSE:NIFTY50-INDEX')
-    interval = request.args.get('interval', '5')
+    interval = int(request.args.get('interval', '5'))
     # Fetch data from database
     data1 = fetch_data_from_db(symbol, interval)
     if compare_db_current_date(symbol):
@@ -1634,29 +1656,557 @@ def calculate_sr_lines(df, prd, nsr):
 def get_support_resistance():
     symbol = request.args.get('symbol', 'NSE:NIFTY50-INDEX')
     interval = request.args.get('interval', '5')
-
-    data = fetch_data_from_db(symbol, interval)
+    nsr = int(request.args.get('nsr', 8))
+    group_size = int(request.args.get('group_size', 5000))
+    
+    data1 = fetch_data_from_db(symbol, interval)
+    if compare_db_current_date(symbol):
+        data2 = fetch_currentday_data(symbol, interval)
+    else:
+        data2 = []
+    data = data1 + data2
 
     df = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close'])
     df.columns = ['date', 'open', 'high', 'low', 'close']
     df['date'] = pd.to_datetime(df['date'])
     
     prd = 30  
-    nsr = 13
-    groups = 1
-    group_size = 5100
-    
     sr_lines_groups = []
-    for i in range(groups):
-        group_df = df.iloc[i*group_size:(i+1)*group_size]
+    offset = len(df) - group_size
+    while (offset > 0) :
+        group_df = df.iloc[offset:offset+group_size]
         sr_lines = calculate_sr_lines(group_df, prd, nsr)
         sr_lines_groups.append({
             "start_date": group_df['date'].iloc[0].strftime('%Y-%m-%d %H:%M:%S'),
             "end_date": group_df['date'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S'),
             "sr_lines": sr_lines
         })
+        offset = offset-group_size
     
-    return jsonify(sr_lines_groups)# This line retrieves the WSGI application instance
+    return jsonify(sr_lines_groups)
+
+@app.route('/trend-lines')
+def get_trend_lines():
+    symbol = request.args.get('symbol', 'NSE:NIFTY50-INDEX')
+    interval = request.args.get('interval', '5')
+
+    data1 = fetch_data_from_db(symbol, interval)
+    if compare_db_current_date(symbol):
+        data2 = fetch_currentday_data(symbol, interval)
+    else:
+        data2 = []
+    data = data1 + data2
+
+    df = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close'])
+    df.columns = ['date', 'open', 'high', 'low', 'close']
+    df['date'] = pd.to_datetime(df['date'])
+
+    climit = 5
+    dlimit = 2
+    prd = 10
+    lines = []
+    sup=df[df.low==df.low.rolling(prd*2,center=True).min()].low
+    res=df[df.high==df.high.rolling(prd*2,center=True).max()].high
+    pl = list(zip(sup.index, sup))
+    ph = list(zip(res.index, res))
+    valid = False
+    uv1 = uv2 = up1 = up2 = 0
+    ilimit = len(df)
+    uplines = []
+    for i in range(len(pl)-1,0,-1):
+        if pl[i][0] > ilimit :
+            continue
+        for j in range(0,i-1):
+            val1=pl[i][1]
+            val2=pl[j][1]
+            pos1=pl[i][0]
+            pos2=pl[j][0]
+            if val1>val2:
+                diff = (val1 - val2) / (pos1 - pos2)
+                hline = val2 
+                lloc = pos1
+                lval = val1
+                valid = True
+                c=d=0
+                for x in range(j+1,i):
+                    hline = val2 + (pl[x][0] - pos2) * diff
+                    if df['close'][pl[x][0]] < hline :
+                        valid = False
+                        break
+                    elif df['low'][pl[x][0]] < hline * (1.005):
+                        c+=1
+                        d = 0
+                    else:
+                        d+=1
+                        if d > dlimit :
+                            valid = False
+                            break
+                if valid and i-j > 2 and c > climit:
+                    # while (lval < df['close'][lloc]) and (lloc < len(df)-1):
+                    #     lloc+=1
+                    #     lval+=diff
+                    uv1 = lval 
+                    uv2 = val2
+                    up1 = lloc
+                    up2 = pos2
+                    uplines.append((uv1,uv2,up1,up2))
+                    uv1 = uv2 = up1 = up2 = 0
+                    ilimit = pl[j][0]
+
+                    break
+    valid = False
+    dv1 = dv2 = dp1 = dp2 = 0
+    ilimit = len(df)
+    dnlines = []
+    for i in range(len(ph)-1,0,-1):
+        if ph[i][0] > ilimit :
+            continue
+        for j in range(0,i-1):
+            val1=ph[i][1]
+            val2=ph[j][1]
+            pos1=ph[i][0]
+            pos2=ph[j][0]
+            if val1<val2:  
+                diff = (val2 - val1) / (pos1 - pos2)
+                hline = val2 
+                lloc = pos1
+                lval = val1
+                valid = True
+                c=d=0
+                for x in range(j+1,i):
+                    hline = val2 - (ph[x][0] - pos2) * diff
+                    if df['close'][ph[x][0]] > hline :
+                        valid = False
+                        break
+                    elif df['high'][ph[x][0]] > hline * 0.995:
+                        c+=1
+                        d = 0
+                    else:
+                        d+=1
+                        if d > dlimit :
+                            valid = False
+                            break
+                if valid and i-j > 2 and c > climit:
+                    # while (lval > df['close'][lloc]) and (lloc < len(df)-1):
+                    #     lloc+=1
+                    #     lval-=diff
+                    dv1 = lval
+                    dv2 = val2
+                    dp1 = lloc
+                    dp2 = pos2
+                    dnlines.append((dv1,dv2,dp1,dp2))
+                    dv1 = dv2 = dp1 = dp2 = 0
+                    ilimit = ph[j][0]                
+                    break
+    valid = False
+    uv1 = uv2 = up1 = up2 = 0
+    ilimit = len(df)
+    for i in range(len(ph)-1,0,-1):
+        if ph[i][0] > ilimit :
+            continue
+        for j in range(0,i-1):
+            val1=ph[i][1]
+            val2=ph[j][1]
+            pos1=ph[i][0]
+            pos2=ph[j][0]
+            if val1>val2:
+                diff = (val1 - val2) / (pos1 - pos2)
+                hline = val2 
+                lloc = pos2
+                lval = hline
+                valid = True
+                c=d=0
+                for x in range(j+1,i):
+                    hline = val2 + (ph[x][0] - pos2) * diff
+                    if df['close'][ph[x][0]] > hline :
+                        valid = False
+                        break
+                    elif df['high'][ph[x][0]] > hline * 0.995:
+                        c+=1
+                        d = 0
+                    else:
+                        d+=1
+                        if d > dlimit :
+                            valid = False
+                            break
+                if valid and i-j > 2 and c > climit:
+                    # while (lval > df['close'][lloc]) and (lloc > 0):
+                    #     lloc-=1
+                    #     lval-=diff
+                    uv1 = lval 
+                    uv2 = val1
+                    up1 = lloc
+                    up2 = pos1
+                    uplines.append((uv1,uv2,up1,up2))
+                    uv1 = uv2 = up1 = up2 = 0
+                    ilimit = ph[j][0]
+
+                    break
+    valid = False
+    dv1 = dv2 = dp1 = dp2 = 0
+    ilimit = len(df)
+    for i in range(len(pl)-1,0,-1):
+        if pl[i][0] > ilimit :
+            continue
+        for j in range(0,i-1):
+            val1=pl[i][1]
+            val2=pl[j][1]
+            pos1=pl[i][0]
+            pos2=pl[j][0]
+            if val1<val2:  
+                diff = (val2 - val1) / (pos1 - pos2)
+                hline = val2 
+                lloc = pos2
+                lval = hline
+                valid = True
+                c=d=0
+                for x in range(j+1,i):
+                    hline = val2 - (pl[x][0] - pos2) * diff
+                    if df['close'][pl[x][0]] < hline :
+                        valid = False
+                        break
+                    elif df['low'][pl[x][0]] < hline * 1.005:
+                        c+=1
+                        d = 0
+                    else:
+                        d+=1
+                        if d > dlimit :
+                            valid = False
+                            break
+                if valid and i-j > 2 and c > climit:
+                    # while (lval < df['close'][lloc]) and (lloc > 0):
+                    #     lloc-=1
+                    #     lval+=diff
+                    dv1 = lval
+                    dv2 = val1
+                    dp1 = lloc
+                    dp2 = pos1
+                    dnlines.append((dv1,dv2,dp1,dp2))
+                    dv1 = dv2 = dp1 = dp2 = 0
+                    ilimit = pl[j][0]            
+                    break
+
+    for up in uplines :
+        lines.append([df['date'][up[3]].strftime('%Y-%m-%d %H:%M:%S'), up[1], df['date'][up[2]].strftime('%Y-%m-%d %H:%M:%S'), up[0], 1])
+     
+    for dn in dnlines:
+        lines.append([df['date'][dn[3]].strftime('%Y-%m-%d %H:%M:%S'), dn[1], df['date'][dn[2]].strftime('%Y-%m-%d %H:%M:%S'), dn[0], 0])
+    return jsonify(lines)
+    
+    
+@app.route('/inside-bars', methods=['GET'])
+def get_inside_bars():
+    symbol = request.args.get('symbol')
+    interval = request.args.get('interval')
+
+    data = fetch_data_from_db(symbol, interval)
+    
+    if not data:
+        return jsonify([])
+
+    df = pd.DataFrame(data)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    def detect_consecutive_ibars(df):
+        consecutive_ibars = [False] * len(df)
+        for i in range(len(df)-1):
+            previous_candle = df.iloc[i]
+            j = i + 1
+            count = 0
+            while j < len(df) and \
+                (df.iloc[j]['High'] < previous_candle['High']) and \
+                (df.iloc[j]['Low'] > previous_candle['Low']) and \
+                (df.iloc[j]['Close'] < previous_candle['High']) and \
+                (df.iloc[j]['Open'] > previous_candle['Low']):
+                
+                count += 1
+                j += 1
+            
+            if count > 3:
+                for k in range(i+1, j):
+                    consecutive_ibars[k] = True
+                consecutive_ibars[i] = True
+                    
+        return consecutive_ibars
+
+    df['ConsecutiveInsideBars'] = detect_consecutive_ibars(df)
+
+    coordinates = []
+    i = 0
+    while i < len(df):
+        if df['ConsecutiveInsideBars'][i]:
+            start = i
+            while i < len(df) and df['ConsecutiveInsideBars'][i]:
+                i += 1
+            end = i - 1
+
+            x0 = df['Date'][start - 1] if start > 0 else df['Date'][start]
+            x1 = df['Date'][end + 1] if end < len(df) - 1 else df['Date'][end]
+
+            y0 = min(df['Low'][start:end+1])
+            y1 = max(df['High'][start:end+1])
+
+            coordinates.append({
+                'x0': x0.strftime('%Y-%m-%d %H:%M:%S'),
+                'x1': x1.strftime('%Y-%m-%d %H:%M:%S'),
+                'y0': y0,
+                'y1': y1
+            })
+
+            i = end + 1
+        else:
+            i += 1
+
+    return jsonify(coordinates)
+    
+@app.route('/v-shape-patterns', methods=['GET'])
+def get_v_shape_patterns():
+    symbol = request.args.get('symbol')
+    interval = request.args.get('interval')
+
+    data = fetch_data_from_db(symbol, interval)
+    
+    if not data:
+        return jsonify([])
+
+    df = pd.DataFrame(data)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    def detect_v_shapes(df):
+        sup = df[df['Low'] == df['Low'].rolling(20, center=True).min()]['Low']
+        res = df[df['High'] == df['High'].rolling(20, center=True).max()]['High']
+        canmean = np.mean(df['High'] - df['Low'])
+        large_candles = []
+        for i in range(len(df)):
+            if df['High'][i] - df['Low'][i] > canmean * 1.5:
+                large_candles.append(i)
+        vlist = []
+        nc = 10
+        for i in res.index:
+            lc = 0
+            rc = 0
+            st = None
+            end = None
+            for j in range(i - nc, i):
+                if j in large_candles:
+                    lc += 1
+                    if lc == 1:
+                        st = j
+            for j in range(i + 1, i + nc):
+                if j in large_candles:
+                    rc += 1
+                    end = j
+            if lc > 2 and rc > 2 and abs(df['Close'][end] - df['Close'][st]) < canmean:
+                vlist.append((st, i, end))
+        return vlist
+
+    v_shapes = detect_v_shapes(df)
+
+    coordinates = []
+    for v in v_shapes:
+        coordinates.append({
+            'x0': df['Date'][v[0]].strftime('%Y-%m-%d %H:%M:%S'),
+            'y0': df['Low'][v[0]],
+            'x1': df['Date'][v[1]].strftime('%Y-%m-%d %H:%M:%S'),
+            'y1': df['High'][v[1]],
+            'x2': df['Date'][v[2]].strftime('%Y-%m-%d %H:%M:%S'),
+            'y2': df['Low'][v[2]]
+        })
+
+    return jsonify(coordinates)
+
+@app.route('/double-tops', methods=['GET'])
+def get_double_tops():
+    symbol = request.args.get('symbol')
+    interval = request.args.get('interval')
+
+    data = fetch_data_from_db(symbol, interval)
+    
+    if not data:
+        return jsonify([])
+
+    df = pd.DataFrame(data)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    def calculate_slope_angle(x, y):
+        model = LinearRegression().fit(x, y)
+        slope = model.coef_[0]
+        angle_deg = math.degrees(math.atan(slope))
+        return slope, angle_deg
+
+    def detect_double_tops(df):
+        srcands = 12
+        sup = df[df['Low'] == df['Low'].rolling(srcands, center=True).min()]['Low']
+        res = df[df['High'] == df['High'].rolling(srcands, center=True).max()]['High']
+        price_diff = np.mean(df['High'] - df['Low']) / 2
+        pat = []
+        max_bar_diff = 50
+        min_bar_diff = 3
+        i = 1
+        j = 0
+        flag = 1
+
+        double_tops = []
+
+        while i < sup.size and j < res.size:
+            if flag == 0 and i < sup.size:
+                if sup.index[i] > pat[0]:
+                    pat.append(sup.index[i])
+                    flag = 1
+                i += 1
+            else:
+                if len(pat) == 0 or res.index[j] > pat[len(pat) - 1]:
+                    pat.append(res.index[j])
+                    flag = 0
+                else:
+                    pat.pop(0)
+                    pat.insert(0, res.index[j])
+                j += 1
+
+            if len(pat) == 3 and pat[2] - pat[0] <= max_bar_diff and pat[2] - pat[1] >= min_bar_diff and pat[1] - pat[0] >= min_bar_diff and abs(res.iloc[j - 2] - res.iloc[j - 1]) <= price_diff:
+                start_index = max(0, pat[0] - 20)
+                end_index = pat[0]
+
+                if df['Low'].iloc[start_index:end_index].iloc[-1] > df['Low'].iloc[start_index:end_index].iloc[0]:
+                    y1 = df['Low'].loc[pat[0]:pat[1]].values
+                    x1 = np.arange(len(y1)).reshape(-1, 1)
+                    slope1, angle1 = calculate_slope_angle(x1, y1)
+
+                    y2 = df['High'].loc[pat[1]:pat[2]].values
+                    x2 = np.arange(len(y2)).reshape(-1, 1)
+                    slope2, angle2 = calculate_slope_angle(x2, y2)
+
+                    if angle1 < -60 and angle2 > 60:
+                        double_tops.append((pat[0], pat[2]))
+
+            if len(pat) == 3:
+                pat.pop(0)
+                pat.pop(0)
+
+        return double_tops
+
+    double_tops = detect_double_tops(df)
+
+    coordinates = []
+    for dt in double_tops:
+        coordinates.append({
+            'x0': df['Date'][dt[0]].strftime('%Y-%m-%d %H:%M:%S'),
+            'y0': df['High'][dt[0]],
+            'x1': df['Date'][dt[1]].strftime('%Y-%m-%d %H:%M:%S'),
+            'y1': df['High'][dt[1]]
+        })
+
+    return jsonify(coordinates)
+
+@app.route('/head-and-shoulders', methods=['GET'])
+def get_head_and_shoulders():
+    symbol = request.args.get('symbol')
+    interval = request.args.get('interval')
+
+    data = fetch_data_from_db(symbol, interval)
+    
+    if not data:
+        return jsonify([])
+
+    df = pd.DataFrame(data)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    def detect_head_and_shoulders(df):
+        sup = df[df['Low'] == df['Low'].rolling(24, center=True).min()]['Low']
+        res = df[df['High'] == df['High'].rolling(24, center=True).max()]['High']
+        sup = sup.to_frame()
+        sup.columns = ['price']
+        sup['val'] = 1
+        res = res.to_frame()
+        res.columns = ['price']
+        res['val'] = 2
+        lev = sup.combine_first(res)
+
+        def hsf(hs):
+            ls, lb, head, rb, rs = hs
+            if df['High'][head] <= max(df['High'][ls], df['High'][rs]):
+                return None
+
+            rh = rs - head
+            lh = head - ls
+            if rh > 2.5 * lh or lh > 2.5 * rh:
+                return None
+
+            neck_run = rb - lb
+            neck_rise = df['Low'][rb] - df['Low'][lb]
+            neck_slope = neck_rise / neck_run
+
+            head_width = rb - lb
+            pat_start = -1
+            pat_end = -1
+
+            for j in range(1, head_width):
+                neck1 = df['Low'][lb] + (ls - lb - j) * neck_slope
+                if ls - j < 0:
+                    return None
+                if df['Low'][ls - j] < neck1:
+                    pat_start = ls - j
+                    break
+
+            for j in range(1, head_width):
+                neck2 = df['Low'][lb] + (rs - lb + j) * neck_slope
+                if rs + j > len(df) - 1:
+                    return None
+                if df['Low'][rs + j] < neck2:
+                    pat_end = rs + j
+                    break
+
+            if pat_start == -1 or pat_end == -1:
+                return None
+            
+            hs.insert(0, pat_start)
+            hs.append(pat_end)
+            return hs
+
+        head_and_shoulders = []
+        c = []
+        p = lev.index[0]
+        for i in lev.index:
+            if len(c) == 0:
+                if lev['val'][i] == 2:
+                    c.append(i)
+                else:
+                    p = i
+                    continue
+            else:
+                if lev['val'][i] != lev['val'][p] and i - p > 3:
+                    c.append(i)
+                elif lev['val'][i] == 1:
+                    c = []
+                else:
+                    c = [i]
+
+            if len(c) == 5:
+                hs = hsf(c)
+                if hs:
+                    head_and_shoulders.append(hs)
+                    c = []
+                else:
+                    c = c[2:]
+            p = i
+
+        return head_and_shoulders
+
+    head_and_shoulders = detect_head_and_shoulders(df)
+
+    coordinates = []
+    for hs in head_and_shoulders:
+        points = []
+        for i in range(len(hs)):
+            points.append({
+                'x': df['Date'][hs[i]].strftime('%Y-%m-%d %H:%M:%S'),
+                'y': df['Low'][hs[i]] if i % 2 == 0 else df['High'][hs[i]]
+            })
+        coordinates.append(points)
+
+    return jsonify(coordinates)
+
+
 application = app.wsgi_app
 
 if __name__ == '__main__':
