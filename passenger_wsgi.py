@@ -1465,11 +1465,24 @@ def index():
 def insert_user(user_data):
     conn = mysql.connector.connect(**db_config2)
     cursor = conn.cursor()
+    
+    # Insert user data into the database
     insert_query = """
-    INSERT INTO users (name, lastname, mailid, phone, trader_type, experience, capital, password, user_type)
+    INSERT INTO users (name, lastname, mailid, phone, experience, capital, password, user_type, trader_type)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    cursor.execute(insert_query, user_data)
+    cursor.execute(insert_query, (
+        user_data['name'],
+        user_data['lastname'],
+        user_data['mailid'],
+        user_data['phone'],
+        user_data['experience'],
+        user_data['capital'],
+        user_data['password'],
+        user_data['user_type'],
+        user_data['trader_type']  # Insert the trader types as a comma-separated string
+    ))
+    
     conn.commit()
     cursor.close()
     conn.close()
@@ -1546,23 +1559,23 @@ def register():
         email = request.form['mailid']
         if is_email_registered(email):
             return render_template('signup.html', email_exists=True)
-
-        trader_types = request.form.getlist('trader_type')
-        trader_types_str = ','.join(trader_types)
-
-        user_data = (
-            request.form['name'],
-            request.form['lastname'],
-            email,
-            request.form['phone'],
-            trader_types_str,
-            request.form['experience'],
-            request.form['capital'],
-            request.form['password'],
-            'user'  # Default user type
-        )
+        
+        # Collect user data from the form
+        user_data = {
+            'name': request.form['name'],
+            'lastname': request.form['lastname'],
+            'mailid': email,
+            'phone': request.form['phone'],
+            'experience': request.form['experience'],
+            'capital': request.form['capital'],
+            'password': request.form['password'],
+            'user_type': 'user',  # Default user type
+            'trader_type': request.form.get('trader_type', '')  # Get comma-separated trader types
+        }
+        
         insert_user(user_data)
         return redirect(url_for('login'))
+    
     return render_template('signup.html', email_exists=False)
 
 
