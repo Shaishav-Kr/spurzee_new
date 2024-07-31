@@ -2154,14 +2154,13 @@ def get_double_tops():
 
     return jsonify(coordinates)
 
-
 @app.route('/head-and-shoulders', methods=['GET'])
 def get_head_and_shoulders():
     symbol = request.args.get('symbol')
     interval = request.args.get('interval')
 
     data = fetch_data_from_db(symbol, interval)
-
+    
     if not data:
         return jsonify([])
 
@@ -2170,8 +2169,7 @@ def get_head_and_shoulders():
 
     def detect_head_and_shoulders(df):
         sup = df[df['Low'] == df['Low'].rolling(24, center=True).min()]['Low']
-        res = df[df['High'] == df['High'].rolling(
-            24, center=True).max()]['High']
+        res = df[df['High'] == df['High'].rolling(24, center=True).max()]['High']
         sup = sup.to_frame()
         sup.columns = ['price']
         sup['val'] = 1
@@ -2216,7 +2214,7 @@ def get_head_and_shoulders():
 
             if pat_start == -1 or pat_end == -1:
                 return None
-
+            
             hs.insert(0, pat_start)
             hs.append(pat_end)
             return hs
@@ -2225,7 +2223,7 @@ def get_head_and_shoulders():
         c = []
         p = lev.index[0]
         for i in lev.index:
-            if len(c) == 0:
+            if not c:
                 if lev['val'][i] == 2:
                     c.append(i)
                 else:
@@ -2261,6 +2259,108 @@ def get_head_and_shoulders():
                 'y': df['Low'][hs[i]] if i % 2 == 0 else df['High'][hs[i]]
             })
         coordinates.append(points)
+
+    return jsonify(coordinates)
+
+@app.route('/cup-and-handle', methods=['GET'])
+def get_cup_and_handle():
+    symbol = request.args.get('symbol')
+    interval = request.args.get('interval')
+
+    data = fetch_data_from_db(symbol, interval)
+    
+    if not data:
+        return jsonify([])
+
+    df = pd.DataFrame(data)
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    def are_overlapping(cup1, cup2, overlap_threshold=0.1):
+        start_idx1, end_idx1 = cup1
+        start_idx2, end_idx2 = cup2
+        overlap_start = max(start_idx1, start_idx2)
+        overlap_end = min(end_idx1, end_idx2)
+        overlap_length = max(0, overlap_end - overlap_start)
+        cup1_length = end_idx1 - start_idx1
+        cup2_length = end_idx2 - start_idx2
+        total_length = cup1_length + cup2_length - overlap_length
+        overlap_ratio = overlap_length / total_length
+        return overlap_ratio > overlap_threshold
+
+    def filter_overlapping_cups(patterns, overlap_threshold=0.1):
+        unique_patterns = []
+        for pattern in patterns:
+            is_unique = True
+            for unique_pattern in unique_patterns:
+                if are_overlapping((pattern[0], pattern[1]), (unique_pattern[0], unique_pattern[1]), overlap_threshold):
+                    is_unique = False
+                    break
+            if is_unique:
+                unique_patterns.append(pattern)
+        return unique_patterns
+
+    price_diff = np.mean(df['high'] - df['low'])
+
+    def quadratic(x, a, b, c):
+        return a * x ** 2 + b * x + c
+
+    def find_pivot_highs(df, window=5):
+        highs = df['high']
+        pivot_highs = []
+        for i in range(window, len(highs) - window):
+            if highs[i] == max(highs[i - window:i + window + 1]):
+                pivot_highs.append(i)
+        return pivot_highs
+
+    def find_cup_and_handle_parabolic(df, pivot_highs, max_bars=100, price_tolerance=0.01):
+        patterns = []
+        for i in range(len(pivot_highs) - 1):
+            for j in range(i + 1, len(pivot_highs)):
+                if pivot_highs[j] - pivot_highs[i] <= max_bars:
+                    if abs(df['high'][pivot_highs[i]] - df['high'][pivot_highs[j]]) <= price_tolerance * df['high'][pivot_highs[i]]:
+                        start_idx = pivot_highs[i]
+                        end_idx = pivot_highs[j]
+                        x = np.arange(end_idx - start_idx + 1)
+                        y = df['low'][start_idx:end_idx + 1].values
+                        if len(x) > 2:
+                            popt, _ = curve_fit(quadratic, x, y)
+                            a, b, c = popt
+                            if a > 0:
+                                vertex = -b / (2 * a)
+                                if 0 < vertex < end_idx - start_idx and (end_idx - start_idx) / abs(a) > 90 and (end_idx - start_idx) / abs(a) < 150:
+                                    depth = df['high'][start_idx] - quadratic(vertex, a, b, c)
+                                    if depth > price_diff * 2:
+                                        patterns.append((start_idx, end_idx, vertex + start_idx, a, b, c))
+        return patterns
+
+    pivot_highs = find_pivot_highs(df)
+    max_bars = 100
+    price_tolerance = 0.001
+    patterns = find_cup_and_handle_parabolic(df, pivot_highs, max_bars, price_tolerance)
+    unique_patterns = filter_overlapping_cups(patterns, overlap_threshold=0.1)
+
+    coordinates = []
+    for start_idx, end_idx, vertex_idx, a, b, c in unique_patterns:
+        if end_idx < len(df):
+            x_vals = np.arange(end_idx - start_idx + 1)
+            y_vals = quadratic(x_vals, a, b, c)
+            x_dates = df['Date'][start_idx:end_idx + 1].dt.strftime('%Y-%m-%d %H:%M:%S').tolist()
+            coordinates.append({
+                'type': 'cup',
+                'x': x_dates,
+                'y': y_vals.tolist()
+            })
+
+            handle_start = end_idx + 1
+            handle_end = handle_start + (end_idx - start_idx) // 3
+            if handle_end < len(df):
+                coordinates.append({
+                    'type': 'handle',
+                    'x0': df['Date'][handle_start].strftime('%Y-%m-%d %H:%M:%S'),
+                    'y0': df['low'][handle_start],
+                    'x1': df['Date'][handle_end].strftime('%Y-%m-%d %H:%M:%S'),
+                    'y1': df['low'][handle_end]
+                })
 
     return jsonify(coordinates)
 

@@ -9,7 +9,7 @@ response_type = "code"                             ## The response_type always h
 state = "sample"                                   ##  The state field here acts as a session manager. you will be sent with the state field after successfull generation of auth_code 
 FY_ID="YL00137"
 TOTP_KEY="EWQ3JH35FTQA6IQLYNZEGNB7WACXTRSG"
-PIN="8844"
+PIN="2002"
 
 ### Connect to the sessionModel object here with the required input parameters
 appSession = fyersModel.SessionModel(client_id = client_id, redirect_uri = redirect_uri,response_type=response_type,state=state,secret_key=secret_key,grant_type=grant_type)

@@ -44,12 +44,13 @@
         </div>
         <div class="dropdown-content" id="dropdown-content">
           <div class="option" data-value="sup-res">S&R Zones
-            <input type="number" id="num-sr-lines" placeholder="No of SR" min = "4" max = "12"  style=" width: 30px; margin-left: 40px;" />
-            <input type="number" id="group-size" placeholder="Group size SR" style=" width: 30px; margin-left: 10px;" />
+            <input type="number" id="num-sr-lines" placeholder="No of SR" value = "8" min = "4" max = "15"  style=" width: 50px; margin-left: 40px;" />
+            <input type="number" id="group-size" placeholder="Group size SR" value = "1400" style=" width: 50px; margin-left: 10px;" />
           </div>
           <div class="option" data-value="trlines">Trend Lines</div>
           <div class="option" data-value="ibarss">Ibars</div>
           <div class="option" data-value="head-and-shoulders">Head and Shoulders</div>
+          <div class="option" data-value="cupandhandle">Cup and Handle</div>
           <div class="option" data-value="double-tops">Double Top</div>
           <div class="option" data-value="vshape">VShape</div>
           <!--<div class="option" data-value="triangle">Triangle</div>-->
@@ -113,42 +114,6 @@
                 <td class="change"></td>
                 <td class="change-percentage"></td>
           </tr>
-            <tr class="stock-row" data-symbol="NSE:ASIANPAINT-EQ" onclick="selectStock(this)">
-                <td>Asian Paints</td>
-                <td class="last-price"></td>
-                <td class="change"></td>
-                <td class="change-percentage"></td>
-            </tr>
-            <tr class="stock-row" data-symbol="NSE:RELIANCE-EQ" onclick="selectStock(this)">
-                <td>Reliance</td>
-                <td class="last-price"></td>
-                <td class="change"></td>
-                <td class="change-percentage"></td>
-            </tr>
-            <tr class="stock-row" data-symbol="NSE:SBIN-EQ" onclick="selectStock(this)">
-                <td>SBI</td>
-                <td class="last-price"></td>
-                <td class="change"></td>
-                <td class="change-percentage"></td>
-            </tr>
-            <tr class="stock-row" data-symbol="NSE:KOTAKBANK-EQ" onclick="selectStock(this)">
-                <td>Kotak Bank</td>
-                <td class="last-price"></td>
-                <td class="change"></td>
-                <td class="change-percentage"></td>
-            </tr>
-            <tr class="stock-row" data-symbol="NSE:HDFCBANK-EQ" onclick="selectStock(this)">
-                <td>Hdfc Bank</td>
-                <td class="last-price"></td>
-                <td class="change"></td>
-                <td class="change-percentage"></td>
-            </tr>
-            <tr class="stock-row" data-symbol="NSE:BAJAJFINSV-EQ" onclick="selectStock(this)">
-                <td>Bajaj Finserve</td>
-                <td class="last-price"></td>
-                <td class="change"></td>
-                <td class="change-percentage"></td>
-            </tr>
         </tbody>
     </table>
   </div>

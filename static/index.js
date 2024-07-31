@@ -125,6 +125,8 @@ async function selectStock(row) {
   headAndShoulders = [];
   doubleTops.forEach(series => chart.removeSeries(series));
   doubleTops = [];
+  cupAndHandle.forEach(series => chart.removeSeries(series));
+  cupAndHandle = [];
   if (selectedOptions.includes('sup-res')) {
     await fetchAndDrawSupportResistance(symbol, interval);
   }
@@ -142,6 +144,9 @@ async function selectStock(row) {
   }
   if (selectedOptions.includes('double-tops')) {
     await fetchAndDrawDoubleTops(symbol, interval);
+  }
+  if (selectedOptions.includes('cupandhandle')) {
+    await fetchAndDrawCupAndHandle(symbol, interval);
   }
 }
 
@@ -175,6 +180,7 @@ async function fetchAndDrawSupportResistance(symbol, interval) {
         const lineSeries = chart.addLineSeries({
           color: color,
           lineWidth: 1,
+          priceLineVisible: false,
         });
         
         lineSeries.setData(horizontalLineData);
@@ -237,6 +243,7 @@ async function fetchAndDrawTrendlines(symbol, interval) {
       const lineSeries = chart.addLineSeries({
         color: linecolor,  // or any color you prefer
         lineWidth: 1,
+        priceLineVisible: false,
       });
       
       lineSeries.setData([
@@ -297,6 +304,7 @@ async function fetchAndDrawIbars(symbol, interval) {
       const rectangleSeries = chart.addLineSeries({
         color: 'rgba(0, 150, 136, 0.6)', // Semi-transparent color
         lineWidth: 2,
+        priceLineVisible: false,
       });
 
       // Draw rectangle using four lines
@@ -349,6 +357,7 @@ async function fetchAndDrawVShapes(symbol, interval) {
       const vShapeSeries = chart.addLineSeries({
         color: 'blue',
         lineWidth: 2,
+        priceLineVisible: false,
       });
 
       // Draw V-shape using three lines
@@ -398,6 +407,7 @@ async function fetchAndDrawDoubleTops(symbol, interval) {
       const doubleTopSeries = chart.addLineSeries({
         color: 'blue',
         lineWidth: 2,
+        priceLineVisible: false,
       });
 
       // Draw double top lines
@@ -454,6 +464,52 @@ async function fetchAndDrawHeadAndShoulders(symbol, interval) {
   }
 }
 
+let cupAndHandle = [];
+
+// Fetch and draw cup-and-handle patterns
+async function fetchAndDrawCupAndHandle(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/cup-and-handle?symbol=${symbol}&interval=${interval}`);
+    const cupAndHandleData = await response.json();
+
+    // Clear existing cup-and-handle series
+    cupAndHandle.forEach(series => chart.removeSeries(series));
+    cupAndHandle = [];
+
+    cupAndHandleData.forEach(pattern => {
+      if (pattern.type === 'cup') {
+        let cupSeries = chart.addLineSeries({
+          color: 'purple',
+          lineWidth: 2,
+        });
+        let cupData = pattern.x.map((x, index) => ({
+          time: parseDateTimeToUnix(x),
+          value: pattern.y[index]
+        }));
+        cupSeries.setData(cupData);
+        cupAndHandle.push(cupSeries);
+      } else if (pattern.type === 'handle') {
+        let handleSeries = chart.addLineSeries({
+          color: 'red',
+          lineWidth: 2,
+        });
+        let handleData = [
+          { time: parseDateTimeToUnix(pattern.x0), value: pattern.y0 },
+          { time: parseDateTimeToUnix(pattern.x1), value: pattern.y1 }
+        ];
+        handleSeries.setData(handleData);
+        cupAndHandle.push(handleSeries);
+      }
+    });
+
+    hideSpinner();
+  } catch (error) {
+    console.error('Error:', error);
+    hideSpinner();
+  }
+}
+
 // Update the change event listener for the interval select
 document.getElementById('interval-select').addEventListener('change', async (event) => {
   const interval = event.target.value;
@@ -482,6 +538,8 @@ document.getElementById('interval-select').addEventListener('change', async (eve
     headAndShoulders = [];
     doubleTops.forEach(series => chart.removeSeries(series));
     doubleTops = [];
+    cupAndHandle.forEach(series => chart.removeSeries(series));
+    cupAndHandle = [];
     if (selectedOptions.includes('sup-res')) {
       await fetchAndDrawSupportResistance(symbol, interval);
     }
@@ -500,29 +558,30 @@ document.getElementById('interval-select').addEventListener('change', async (eve
     if (selectedOptions.includes('double-tops')) {
       await fetchAndDrawDoubleTops(symbol, interval);
     }
+    if (selectedOptions.includes('cupandhandle')) {
+      await fetchAndDrawCupAndHandle(symbol, interval);
+    }
   }
 });
 
 // Search Button
+
 document.addEventListener('DOMContentLoaded', () => {
   const searchButton = document.getElementById('search-button');
   const searchPopup = document.getElementById('search-popup');
   const closeButton = document.querySelector('.close-button');
+  const searchResults = document.getElementById('search-results');
+  let rows = document.querySelectorAll('.stock-row');
 
-  // Get all stock rows and fetch data for each stock
-  const rows = document.querySelectorAll('.stock-row');
-  rows.forEach(row => {
-    const symbol = row.getAttribute('data-symbol');
-    const interval = document.getElementById('interval-select').value;
-    //fetchChange(symbol, interval, row);
-  });
-
-  // Search button click event
+  // Show search popup on button click
   searchButton.addEventListener('click', () => {
     searchPopup.style.display = 'block';
+    fetchStocks();
   });
 
-  // Close button click event
+
+
+  // Close search popup on button click
   closeButton.addEventListener('click', () => {
     searchPopup.style.display = 'none';
   });
@@ -533,28 +592,83 @@ document.addEventListener('DOMContentLoaded', () => {
       searchPopup.style.display = 'none';
     }
   });
+
+  // Fetch stock data from Flask endpoint
+  function fetchStocks() {
+    fetch('/get_50_stocks')  // Adjust the endpoint URL as necessary
+      .then(response => response.json())
+      .then(data => {
+        displayStocks(data);
+      })
+      .catch(error => {
+        console.error('Error fetching stocks:', error);
+      });
+  }
+
+  // Display stocks in the search popup
+  function displayStocks(stocks) {
+    searchResults.innerHTML = '';
+    const existingSymbols = new Set(Array.from(rows).map(row => row.getAttribute('data-symbol')));
+    console.log(existingSymbols);
+    stocks.forEach(stock => {
+      const stockItem = document.createElement('div');
+      stockItem.classList.add('stock-item');
+      stockItem.setAttribute('data-symbol', stock.value);
+
+      // Determine the button symbol based on whether the stock is already in the table
+      const buttonSymbol = existingSymbols.has(stock.value) ? '-' : '+';
+      const buttonClass = existingSymbols.has(stock.value) ? 'remove-stock-button' : 'add-stock-button';
+
+      stockItem.innerHTML = `
+        <span>${stock.value} </span>
+        <button class="${buttonClass}">${buttonSymbol}</button>
+      `;
+      searchResults.appendChild(stockItem);
+
+      const actionButton = stockItem.querySelector(`.${buttonClass}`);
+      actionButton.addEventListener('click', () => {
+        if (buttonSymbol === '+') {
+          addStockToTable(stock);
+        } else {
+          removeStockFromTable(stock);
+        }
+      });
+    });
+  }
+
+  function removeStockFromTable(stock) {
+    rows.forEach(row => {
+      if (row.getAttribute('data-symbol') === stock.value) {
+        row.remove(); // Remove the stock row
+      }
+    });
+    rows = document.querySelectorAll('.stock-row');
+  }
+
+  // Add stock to the stock table
+  function addStockToTable(stock) {
+    const tableBody = document.querySelector('#stock-table tbody');
+    const newRow = document.createElement('tr');
+    newRow.classList.add('stock-row');
+    newRow.setAttribute('data-symbol', stock.value);
+    newRow.setAttribute('onclick', 'selectStock(this)');
+    newRow.innerHTML = `
+      <td>${stock.value}</td>
+      <td class="last-price"></td>
+      <td class="change"></td>
+      <td class="change-percentage"></td>
+    `;
+    tableBody.appendChild(newRow);
+    searchPopup.style.display = 'none';
+    rows = document.querySelectorAll('.stock-row');
+    console.log(rows);
+  }
+  
+  
 });
 
-// Function to fetch and process data from the new /get-change endpoint
-// async function fetchChange(symbol, interval, row) {
-//   showSpinner();
-//   try {
-//     const response = await fetch(`/get-change?symbol=${symbol}&interval=${interval}`);
-//     const data = await response.json();
-    
-//     if (data.error) {
-//       console.error(data.error);
-//     } else {
-//       // Update table cells with new data
-//       updateTable(symbol, data.last, data.chg.toFixed(2), data.chgPct, row);
-//     }
 
-//     hideSpinner();
-//   } catch (error) {
-//     console.error(error);
-//     hideSpinner();
-//   }
-// }
+
 let selectedOptions = [];
 
 document.getElementById('refresh-button').addEventListener('click', () => {
@@ -629,7 +743,14 @@ document.addEventListener('DOMContentLoaded', () => {
         else{
           vShapes.forEach(series => chart.removeSeries(series));
           vShapes = [];
-        } 
+        }
+        if (selectedOptions.includes('cupandhandle')) {
+          fetchAndDrawCupAndHandle(symbol, interval);
+        }
+        else{
+          cupAndHandle.forEach(series => chart.removeSeries(series));
+          cupAndHandle = [];
+        }
       }
       
     });
