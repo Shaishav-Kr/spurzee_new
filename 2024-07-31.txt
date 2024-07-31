@@ -1,0 +1,12 @@
+
+1722410851517 :: getCall ::  :: 1722410851517 :: 
+Expecting value: line 1 column 1 (char 0)
+1722410851036 :: history :: {'symbol': 'NSE:RELIANCE-EQ', 'resolution': '5', 'date_format': '1', 'range_from': '2023-01-01', 'range_to': '2023-01-31', 'cont_flag': '1'} :: 1722410851518 :: {'code': '500', 'data': JSONDecodeError('Expecting value: line 1 column 1 (char 0)')}
+
+1722410931199 :: getCall ::  :: 1722410931199 :: 
+Expecting value: line 1 column 1 (char 0)
+1722410930771 :: history :: {'symbol': 'NSE:RELIANCE-EQ', 'resolution': '5', 'date_format': '1', 'range_from': '2023-01-01', 'range_to': '2023-01-31', 'cont_flag': '1'} :: 1722410931199 :: {'code': '500', 'data': JSONDecodeError('Expecting value: line 1 column 1 (char 0)')}
+
+1722410989819 :: getCall ::  :: 1722410989819 :: 
+Expecting value: line 1 column 1 (char 0)
+1722410989295 :: history :: {'symbol': 'NSE:RELIANCE-EQ', 'resolution': '5', 'date_format': '1', 'range_from': '2023-01-01', 'range_to': '2023-01-31', 'cont_flag': '1'} :: 1722410989821 :: {'code': '500', 'data': JSONDecodeError('Expecting value: line 1 column 1 (char 0)')}
