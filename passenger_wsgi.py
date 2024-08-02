@@ -64,7 +64,7 @@ users = {'admin': {'password': 'user98440', 'role': 'admin'},
 with open("abcd.txt", 'r') as r:
     access_token = r.read()
 
-client_id = "DZO41L3M36-100" # Lokesh
+client_id = "DZO41L3M36-100"  # Lokesh
 # client_id = "7DRCQEYSRQ-100" # Trupthi
 
 fyers = fyersModel.FyersModel(
@@ -1375,7 +1375,7 @@ def index():
 def insert_user(user_data):
     conn = mysql.connector.connect(**db_config2)
     cursor = conn.cursor()
-    
+
     # Insert user data into the database
     insert_query = """
     INSERT INTO users (name, lastname, mailid, phone, experience, capital, password, user_type, trader_type)
@@ -1390,9 +1390,10 @@ def insert_user(user_data):
         user_data['capital'],
         user_data['password'],
         user_data['user_type'],
-        user_data['trader_type']  # Insert the trader types as a comma-separated string
+        # Insert the trader types as a comma-separated string
+        user_data['trader_type']
     ))
-    
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -1469,7 +1470,7 @@ def register():
         email = request.form['mailid']
         if is_email_registered(email):
             return render_template('signup.html', email_exists=True)
-        
+
         # Collect user data from the form
         user_data = {
             'name': request.form['name'],
@@ -1480,12 +1481,13 @@ def register():
             'capital': request.form['capital'],
             'password': request.form['password'],
             'user_type': 'user',  # Default user type
-            'trader_type': request.form.get('trader_type', '')  # Get comma-separated trader types
+            # Get comma-separated trader types
+            'trader_type': request.form.get('trader_type', '')
         }
-        
+
         insert_user(user_data)
         return redirect(url_for('login'))
-    
+
     return render_template('signup.html', email_exists=False)
 
 
@@ -1920,6 +1922,52 @@ def get_inside_bars():
 
     return jsonify(coordinates)
 
+@app.route('/ema5', methods=['GET'])
+def get_ema5():
+    symbol = request.args.get('symbol')
+    interval = request.args.get('interval')
+
+    data = fetch_data_from_db(symbol, interval)
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return jsonify([])
+
+    # Check column names
+    print(df.columns)
+
+    df['Date'] = pd.to_datetime(df['Date'])  # Use the actual column name from your database
+
+    ac = -1  # Initialize `ac` to ensure it's defined before used in the loop
+    acs = pd.Series(dtype='datetime64[ns]')
+    hs = pd.Series(dtype='float64')
+    f = 0
+    pac = 0
+    df["EMA5"] = ta.ema(df["Close"], length=5)
+
+    for cid in df.index:
+        if cid < 4:
+            continue
+        down = df['Close'][cid] if df['Close'][cid] < df['Open'][cid] else df['Open'][cid]
+        pdo = df['Close'][cid-1] if df['Close'][cid-1] < df['Open'][cid-1] else df['Open'][cid-1]
+        if df['Low'][cid] >= df['EMA5'][cid] or (f == 1 and down > df['EMA5'][cid]):
+            if ac == cid-1:
+                f = 1
+                if pdo > down and (len(acs) == 0 or cid-pac > 5):
+                    acs.loc[len(acs)] = df['Date'][cid]  # Ensure this column exists
+                    hs.loc[len(hs)] = df['High'][cid]
+                    ac = -1
+                    pac = cid
+                    f = 0
+                    continue
+        ac = cid  # Move this assignment inside the loop
+
+    # Prepare the data to be sent as JSON
+    ema5_data = [{'x': str(date), 'y': High} for date, High in zip(acs, hs)]
+    return jsonify(ema5_data)
+
+
+
 
 @app.route('/v-shape-patterns', methods=['GET'])
 def get_v_shape_patterns():
@@ -2064,13 +2112,14 @@ def get_double_tops():
 
     return jsonify(coordinates)
 
+
 @app.route('/head-and-shoulders', methods=['GET'])
 def get_head_and_shoulders():
     symbol = request.args.get('symbol')
     interval = request.args.get('interval')
 
     data = fetch_data_from_db(symbol, interval)
-    
+
     if not data:
         return jsonify([])
 
@@ -2079,7 +2128,8 @@ def get_head_and_shoulders():
 
     def detect_head_and_shoulders(df):
         sup = df[df['Low'] == df['Low'].rolling(24, center=True).min()]['Low']
-        res = df[df['High'] == df['High'].rolling(24, center=True).max()]['High']
+        res = df[df['High'] == df['High'].rolling(
+            24, center=True).max()]['High']
         sup = sup.to_frame()
         sup.columns = ['price']
         sup['val'] = 1
@@ -2124,7 +2174,7 @@ def get_head_and_shoulders():
 
             if pat_start == -1 or pat_end == -1:
                 return None
-            
+
             hs.insert(0, pat_start)
             hs.append(pat_end)
             return hs
@@ -2172,13 +2222,14 @@ def get_head_and_shoulders():
 
     return jsonify(coordinates)
 
+
 @app.route('/cup-and-handle', methods=['GET'])
 def get_cup_and_handle():
     symbol = request.args.get('symbol')
     interval = request.args.get('interval')
 
     data = fetch_data_from_db(symbol, interval)
-    
+
     if not data:
         return jsonify([])
 
@@ -2238,15 +2289,18 @@ def get_cup_and_handle():
                             if a > 0:
                                 vertex = -b / (2 * a)
                                 if 0 < vertex < end_idx - start_idx and (end_idx - start_idx) / abs(a) > 90 and (end_idx - start_idx) / abs(a) < 150:
-                                    depth = df['high'][start_idx] - quadratic(vertex, a, b, c)
+                                    depth = df['high'][start_idx] - \
+                                        quadratic(vertex, a, b, c)
                                     if depth > price_diff * 2:
-                                        patterns.append((start_idx, end_idx, vertex + start_idx, a, b, c))
+                                        patterns.append(
+                                            (start_idx, end_idx, vertex + start_idx, a, b, c))
         return patterns
 
     pivot_highs = find_pivot_highs(df)
     max_bars = 100
     price_tolerance = 0.001
-    patterns = find_cup_and_handle_parabolic(df, pivot_highs, max_bars, price_tolerance)
+    patterns = find_cup_and_handle_parabolic(
+        df, pivot_highs, max_bars, price_tolerance)
     unique_patterns = filter_overlapping_cups(patterns, overlap_threshold=0.1)
 
     coordinates = []
@@ -2254,7 +2308,8 @@ def get_cup_and_handle():
         if end_idx < len(df):
             x_vals = np.arange(end_idx - start_idx + 1)
             y_vals = quadratic(x_vals, a, b, c)
-            x_dates = df['Date'][start_idx:end_idx + 1].dt.strftime('%Y-%m-%d %H:%M:%S').tolist()
+            x_dates = df['Date'][start_idx:end_idx +
+                                 1].dt.strftime('%Y-%m-%d %H:%M:%S').tolist()
             coordinates.append({
                 'type': 'cup',
                 'x': x_dates,
