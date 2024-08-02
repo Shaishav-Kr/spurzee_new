@@ -4,17 +4,17 @@ const chartProperties = {
     secondsVisible: false,
     fixLeftEdge: true,
     borderVisible: false,
-  },
+  }
 };
-const domElement = document.getElementById("tvchart");
+const domElement = document.getElementById('tvchart');
 const chart = LightweightCharts.createChart(domElement, {
   width: domElement.clientWidth,
   height: domElement.clientHeight,
-  ...chartProperties,
+  ...chartProperties
 });
 const candleSeries = chart.addCandlestickSeries();
-const hoverInfo = document.getElementById("hover-info");
-const spinner = document.getElementById("spinner");
+const hoverInfo = document.getElementById('hover-info');
+const spinner = document.getElementById('spinner');
 
 let currentOHLC = {};
 // Function to resize the chart
@@ -34,41 +34,39 @@ const resizeObserver = new ResizeObserver(() => {
 resizeObserver.observe(domElement);
 
 // Optionally: Handle window resize event as a fallback
-window.addEventListener("resize", resizeChart);
+window.addEventListener('resize', resizeChart);
 
 // Helper function to parse date-time string to Unix timestamp in seconds
 function parseDateTimeToUnix(dateTime) {
-  const [datePart, timePart] = dateTime.split(" ");
-  const [year, month, day] = datePart.split("-").map(Number);
-  const [hour, minute, second] = timePart.split(":").map(Number);
+  const [datePart, timePart] = dateTime.split(' ');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second] = timePart.split(':').map(Number);
   const date = new Date(year, month - 1, day, hour, minute, second);
-  const offset = 5 * 60 * 60 * 1000 + 30 * 60 * 1000;
+  const offset = (5 * 60 * 60 * 1000) + (30 * 60 * 1000);
   const newDate = new Date(date.getTime() + offset);
   return Math.floor(newDate.getTime() / 1000);
 }
 
 function showSpinner() {
-  spinner.style.display = "block";
+  spinner.style.display = 'block';
 }
 
 function hideSpinner() {
-  spinner.style.display = "none";
+  spinner.style.display = 'none';
 }
 
 // Function to fetch and process data from backend
 async function fetchData(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/stock-data?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/stock-data?symbol=${symbol}&interval=${interval}`);
     const data = await response.json();
-    const cdata = data.map((d) => ({
+    const cdata = data.map(d => ({
       time: parseDateTimeToUnix(d.Date),
       open: parseFloat(d.Open),
       high: parseFloat(d.High),
       low: parseFloat(d.Low),
-      close: parseFloat(d.Close),
+      close: parseFloat(d.Close)
     }));
     candleSeries.setData(cdata);
     const lastCandle = cdata[cdata.length - 1];
@@ -82,31 +80,30 @@ async function fetchData(symbol, interval) {
 
 // Function to update table cells
 function updateTable(symbol, last, chg, chgPct) {
-  const table = document.getElementById("stock-table");
-  const rows = table.querySelectorAll(".stock-row");
-
-  rows.forEach((row) => {
-    if (row.getAttribute("data-symbol") === symbol) {
-      row.querySelector("td:nth-child(2)").textContent = last;
-      row.querySelector("td:nth-child(3)").textContent =
-        chg >= 0 ? `+${chg}` : chg;
-      row.querySelector("td:nth-child(4)").textContent = `${chgPct}%`;
+  const table = document.getElementById('stock-table');
+  const rows = table.querySelectorAll('.stock-row');
+  
+  rows.forEach(row => {
+    if (row.getAttribute('data-symbol') === symbol) {
+      row.querySelector('td:nth-child(2)').textContent = last;
+      row.querySelector('td:nth-child(3)').textContent = chg >= 0 ? `+${chg}` : chg;
+      row.querySelector('td:nth-child(4)').textContent = `${chgPct}%`;
     }
   });
 }
 
 async function selectStock(row) {
-  var rows = document.getElementsByClassName("stock-row");
-
+  var rows = document.getElementsByClassName('stock-row');
+  
   for (var i = 0; i < rows.length; i++) {
-    rows[i].classList.remove("selected");
+      rows[i].classList.remove('selected');
   }
-
-  row.classList.add("selected");
-  var stockName = row.getElementsByTagName("td")[0].innerText;
-  document.getElementById("selected-stock").textContent = stockName;
-  const interval = document.getElementById("interval-select").value;
-  const symbol = row.getAttribute("data-symbol");
+  
+  row.classList.add('selected');
+  var stockName = row.getElementsByTagName('td')[0].innerText;
+  document.getElementById('selected-stock').textContent = stockName;
+  const interval = document.getElementById('interval-select').value;
+  const symbol = row.getAttribute('data-symbol');
   fetchData(symbol, interval);
   const lastCandle = await fetchData(symbol, interval);
   if (lastCandle) {
@@ -116,45 +113,103 @@ async function selectStock(row) {
     console.log(currentOHLC[lastCandle.time]);
     console.log(lastCandle);
   }
-  srLineSeries.forEach((series) => chart.removeSeries(series));
+  srLineSeries.forEach(series => chart.removeSeries(series));
   srLineSeries = [];
-  trendlineSeries.forEach((series) => chart.removeSeries(series));
+  trendlineSeries.forEach(series => chart.removeSeries(series));
   trendlineSeries = [];
-  ibars.forEach((series) => chart.removeSeries(series));
+  ibars.forEach(series => chart.removeSeries(series));
   ibars = [];
-  vShapes.forEach((series) => chart.removeSeries(series));
+  vShapes.forEach(series => chart.removeSeries(series));
   vShapes = [];
-  headAndShoulders.forEach((series) => chart.removeSeries(series));
+  headAndShoulders.forEach(series => chart.removeSeries(series));
   headAndShoulders = [];
-  doubleTops.forEach((series) => chart.removeSeries(series));
+  doubleTops.forEach(series => chart.removeSeries(series));
   doubleTops = [];
-  cupAndHandle.forEach((series) => chart.removeSeries(series));
+  cupAndHandle.forEach(series => chart.removeSeries(series));
   cupAndHandle = [];
-  if (selectedOptions.includes("sup-res")) {
+  emaSeries.forEach(series => chart.removeSeries(series));
+  emaSeries = [];
+  if (selectedOptions.includes('sup-res')) {
     await fetchAndDrawSupportResistance(symbol, interval);
   }
-  if (selectedOptions.includes("trlines")) {
+  if (selectedOptions.includes('trlines')) {
     await fetchAndDrawTrendlines(symbol, interval);
   }
-  if (selectedOptions.includes("ibarss")) {
+  if (selectedOptions.includes('ibarss')) {
     await fetchAndDrawIbars(symbol, interval);
   }
-  if (selectedOptions.includes("vshape")) {
+  if (selectedOptions.includes('vshape')) {
     await fetchAndDrawIbars(symbol, interval);
   }
-  if (selectedOptions.includes("head-and-shoulders")) {
+  if (selectedOptions.includes('head-and-shoulders')) {
     await fetchAndDrawHeadAndShoulders(symbol, interval);
   }
-  if (selectedOptions.includes("double-tops")) {
+  if (selectedOptions.includes('double-tops')) {
     await fetchAndDrawDoubleTops(symbol, interval);
   }
-  if (selectedOptions.includes("cupandhandle")) {
+  if (selectedOptions.includes('cupandhandle')) {
     await fetchAndDrawCupAndHandle(symbol, interval);
   }
-  if (selectedOptions.includes("ema5")) {
-    await fetchAndDrawEma5(symbol, interval);
+  if (selectedOptions.includes('ema')) {
+    await fetchAndDrawEma(symbol, interval);
   }
 }
+
+let emaSeries = {};
+
+// Utility function to parse date time to Unix timestamp
+function parseDateTimeToUnix(dateTimeStr) {
+  const date = new Date(dateTimeStr);
+  return Math.floor(date.getTime() / 1000);
+}
+
+// Fetch and draw EMA data
+async function fetchAndDrawEma(symbol, interval) {
+  showSpinner();
+  try {
+    const response = await fetch(`/ema-series?symbol=${symbol}&interval=${interval}`);
+    const emaData = await response.json();
+
+    // Clear existing EMA series
+    Object.values(emaSeries).forEach(series => chart.removeSeries(series));
+
+    emaSeries = {}; // Reset emaSeries
+
+    if (emaData.length > 0) {
+      const emaColors = {
+        EMA5: 'blue',
+        EMA10: 'green',
+        EMA20: 'red',
+        EMA50: 'purple',
+        EMA100: 'orange',
+        EMA200: 'yellow'
+      };
+
+      // Define the shift amount in seconds (adjust as needed)
+      const shiftAmount = 60 * 335; // For example, shifting by 15 minutes
+
+      Object.keys(emaColors).forEach(emaKey => {
+        const emaPlotData = emaData.map(point => ({
+          time: parseDateTimeToUnix(point.Date) - shiftAmount, // Apply the shift
+          value: point[emaKey]
+        }));
+
+        emaSeries[emaKey] = chart.addLineSeries({
+          color: emaColors[emaKey],
+          lineWidth: 2
+        });
+
+        emaSeries[emaKey].setData(emaPlotData);
+      });
+    }
+
+    hideSpinner();
+  } catch (error) {
+    console.error('Error fetching EMA data:', error);
+    hideSpinner();
+  }
+}
+
 
 let srLineSeries = [];
 
@@ -162,35 +217,33 @@ let srLineSeries = [];
 async function fetchAndDrawSupportResistance(symbol, interval) {
   showSpinner();
   try {
-    const nsr = document.getElementById("num-sr-lines").value;
-    const group_size = document.getElementById("group-size").value;
-    const response = await fetch(
-      `/support-resistance?symbol=${symbol}&interval=${interval}&nsr=${nsr}&group_size=${group_size}`
-    );
+    const nsr = document.getElementById('num-sr-lines').value;
+    const group_size = document.getElementById('group-size').value;
+    const response = await fetch(`/support-resistance?symbol=${symbol}&interval=${interval}&nsr=${nsr}&group_size=${group_size}`);
     const srGroups = await response.json();
-
+    
     // Clear existing SR line series
-    srLineSeries.forEach((series) => chart.removeSeries(series));
+    srLineSeries.forEach(series => chart.removeSeries(series));
     srLineSeries = [];
-
+    
     srGroups.forEach((group, index) => {
-      const color = ["black", "blue", "green"][index];
+      const color = ['black', 'blue', 'green'][index];
       const { start_date, end_date, sr_lines } = group;
       const startTime = parseDateTimeToUnix(start_date);
       const endTime = parseDateTimeToUnix(end_date);
-
-      sr_lines.forEach((level) => {
+      
+      sr_lines.forEach(level => {
         const horizontalLineData = [
           { time: startTime, value: level },
-          { time: endTime, value: level },
+          { time: endTime, value: level }
         ];
-
+        
         const lineSeries = chart.addLineSeries({
           color: color,
           lineWidth: 1,
           priceLineVisible: false,
         });
-
+        
         lineSeries.setData(horizontalLineData);
         srLineSeries.push(lineSeries);
       });
@@ -208,20 +261,19 @@ let trendlineSeries = [];
 async function fetchAndDrawTrendlines(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/trend-lines?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/trend-lines?symbol=${symbol}&interval=${interval}`);
     const trendlineData = await response.json();
     // Clear existing trendline series
-    trendlineSeries.forEach((series) => chart.removeSeries(series));
+    trendlineSeries.forEach(series => chart.removeSeries(series));
     trendlineSeries = [];
 
     // Get the conversion functions from the chart
     // const priceToCoordinate = chart.priceScale().priceToCoordinate.bind(chart.priceScale());
     // const timeToCoordinate = chart.timeScale().timeToCoordinate.bind(chart.timeScale());
-
-    trendlineData.forEach((line) => {
-      let [x0, y0, x1, y1, colorCode] = line;
+    
+    
+    trendlineData.forEach(line => {
+      let [ x0, y0, x1, y1, colorCode ] = line;
       // Calculate scaled coordinates
       // const x0Coord = chart.timeScale().timeToCoordinate(x0);
       // const y0Coord = candleSeries.priceScale().priceToCoordinate(y0);
@@ -231,10 +283,10 @@ async function fetchAndDrawTrendlines(symbol, interval) {
       let x1Unix = parseDateTimeToUnix(x1);
 
       if (x0Unix === null || x1Unix === null) {
-        console.error("Invalid date conversion for:", line);
+        console.error('Invalid date conversion for:', line);
         return;
       }
-      const linecolor = colorCode === 1 ? "green" : "red";
+      const linecolor = colorCode === 1 ? 'green' : 'red';
       if (x0Unix > x1Unix) {
         let temp = x0Unix;
         x0Unix = x1Unix;
@@ -250,14 +302,14 @@ async function fetchAndDrawTrendlines(symbol, interval) {
       // console.log(angle);
       // Convert x0, y0, x1, y1 to the format expected by Lightweight Charts
       const lineSeries = chart.addLineSeries({
-        color: linecolor, // or any color you prefer
+        color: linecolor,  // or any color you prefer
         lineWidth: 1,
         priceLineVisible: false,
       });
-
+      
       lineSeries.setData([
         { time: x0Unix, value: y0 },
-        { time: x1Unix, value: y1 },
+        { time: x1Unix, value: y1 }
       ]);
 
       trendlineSeries.push(lineSeries);
@@ -269,11 +321,12 @@ async function fetchAndDrawTrendlines(symbol, interval) {
       //   // text: `${angle.toFixed(2)}鴔節,
       //   // color: linecolor,
       // });
+      
     });
 
     hideSpinner();
   } catch (error) {
-    console.error("error is" + error);
+    console.error('error is' + error);
     hideSpinner();
   }
 }
@@ -284,23 +337,21 @@ let ibars = [];
 async function fetchAndDrawIbars(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/inside-bars?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/inside-bars?symbol=${symbol}&interval=${interval}`);
     const ibarsData = await response.json();
 
     // Clear existing inside bar series
-    ibars.forEach((series) => chart.removeSeries(series));
+    ibars.forEach(series => chart.removeSeries(series));
     ibars = [];
 
-    ibarsData.forEach((line) => {
+    ibarsData.forEach(line => {
       let { x0, y0, x1, y1 } = line;
 
       let x0Unix = parseDateTimeToUnix(x0);
       let x1Unix = parseDateTimeToUnix(x1);
 
       if (x0Unix === null || x1Unix === null) {
-        console.error("Invalid date conversion for:", line);
+        console.error('Invalid date conversion for:', line);
         return;
       }
 
@@ -312,7 +363,7 @@ async function fetchAndDrawIbars(symbol, interval) {
 
       // Define the rectangle series using LineSeries
       const rectangleSeries = chart.addLineSeries({
-        color: "rgba(0, 150, 136, 0.6)", // Semi-transparent color
+        color: 'rgba(0, 150, 136, 0.6)', // Semi-transparent color
         lineWidth: 2,
         priceLineVisible: false,
       });
@@ -333,48 +384,7 @@ async function fetchAndDrawIbars(symbol, interval) {
 
     hideSpinner();
   } catch (error) {
-    console.error("Error:", error);
-    hideSpinner();
-  }
-}
-
-let ema5Series = null;
-
-// Utility function to parse date time to Unix timestamp
-function parseDateTimeToUnix(dateTimeStr) {
-  const date = new Date(dateTimeStr);
-  return Math.floor(date.getTime() / 1000);
-}
-
-// Fetch and draw EMA5 data
-async function fetchAndDrawEma5(symbol, interval) {
-  showSpinner();
-  try {
-    const response = await fetch(`/ema5?symbol=${symbol}&interval=${interval}`);
-    const ema5Data = await response.json();
-
-    // Clear existing EMA5 series
-    if (ema5Series) {
-      chart.removeSeries(ema5Series);
-    }
-
-    if (ema5Data.length > 0) {
-      const ema5PlotData = ema5Data.map(point => ({
-        time: parseDateTimeToUnix(point.x),
-        value: point.y
-      }));
-
-      ema5Series = chart.addLineSeries({
-        color: 'blue',
-        lineWidth: 1
-      });
-
-      ema5Series.setData(ema5PlotData);
-    }
-
-    hideSpinner();
-  } catch (error) {
-    console.error('Error fetching EMA5 data:', error);
+    console.error('Error:', error);
     hideSpinner();
   }
 }
@@ -385,16 +395,14 @@ let vShapes = [];
 async function fetchAndDrawVShapes(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/v-shape-patterns?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/v-shape-patterns?symbol=${symbol}&interval=${interval}`);
     const vShapesData = await response.json();
 
     // Clear existing V-shape series
-    vShapes.forEach((series) => chart.removeSeries(series));
+    vShapes.forEach(series => chart.removeSeries(series));
     vShapes = [];
 
-    vShapesData.forEach((shape) => {
+    vShapesData.forEach(shape => {
       const { x0, y0, x1, y1, x2, y2 } = shape;
 
       const x0Unix = parseDateTimeToUnix(x0);
@@ -402,13 +410,13 @@ async function fetchAndDrawVShapes(symbol, interval) {
       const x2Unix = parseDateTimeToUnix(x2);
 
       if (x0Unix === null || x1Unix === null || x2Unix === null) {
-        console.error("Invalid date conversion for:", shape);
+        console.error('Invalid date conversion for:', shape);
         return;
       }
 
       // Define the line series for the V-shape pattern
       const vShapeSeries = chart.addLineSeries({
-        color: "blue",
+        color: 'blue',
         lineWidth: 2,
         priceLineVisible: false,
       });
@@ -427,7 +435,7 @@ async function fetchAndDrawVShapes(symbol, interval) {
 
     hideSpinner();
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Error:', error);
     hideSpinner();
   }
 }
@@ -438,29 +446,27 @@ let doubleTops = [];
 async function fetchAndDrawDoubleTops(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/double-tops?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/double-tops?symbol=${symbol}&interval=${interval}`);
     const doubleTopsData = await response.json();
 
     // Clear existing double tops series
-    doubleTops.forEach((series) => chart.removeSeries(series));
+    doubleTops.forEach(series => chart.removeSeries(series));
     doubleTops = [];
 
-    doubleTopsData.forEach((line) => {
+    doubleTopsData.forEach(line => {
       let { x0, y0, x1, y1 } = line;
 
       let x0Unix = parseDateTimeToUnix(x0);
       let x1Unix = parseDateTimeToUnix(x1);
 
       if (x0Unix === null || x1Unix === null) {
-        console.error("Invalid date conversion for:", line);
+        console.error('Invalid date conversion for:', line);
         return;
       }
 
       // Define the line series for the double top pattern
       const doubleTopSeries = chart.addLineSeries({
-        color: "blue",
+        color: 'blue',
         lineWidth: 2,
         priceLineVisible: false,
       });
@@ -468,7 +474,7 @@ async function fetchAndDrawDoubleTops(symbol, interval) {
       // Draw double top lines
       const doubleTopData = [
         { time: x0Unix, value: y0 },
-        { time: x1Unix, value: y1 },
+        { time: x1Unix, value: y1 }
       ];
 
       doubleTopSeries.setData(doubleTopData);
@@ -478,7 +484,7 @@ async function fetchAndDrawDoubleTops(symbol, interval) {
 
     hideSpinner();
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Error:', error);
     hideSpinner();
   }
 }
@@ -488,24 +494,22 @@ let headAndShoulders = [];
 async function fetchAndDrawHeadAndShoulders(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/head-and-shoulders?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/head-and-shoulders?symbol=${symbol}&interval=${interval}`);
     const headAndShouldersData = await response.json();
 
     // Clear existing head-and-shoulders series
-    headAndShoulders.forEach((series) => chart.removeSeries(series));
+    headAndShoulders.forEach(series => chart.removeSeries(series));
     headAndShoulders = [];
 
-    headAndShouldersData.forEach((pattern) => {
-      let patternData = pattern.map((point) => ({
+    headAndShouldersData.forEach(pattern => {
+      let patternData = pattern.map(point => ({
         time: parseDateTimeToUnix(point.x),
-        value: point.y,
+        value: point.y
       }));
 
       // Define the line series for the head-and-shoulders pattern
       const headAndShouldersSeries = chart.addLineSeries({
-        color: "blue",
+        color: 'blue',
         lineWidth: 2,
       });
 
@@ -516,7 +520,7 @@ async function fetchAndDrawHeadAndShoulders(symbol, interval) {
 
     hideSpinner();
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Error:', error);
     hideSpinner();
   }
 }
@@ -527,35 +531,33 @@ let cupAndHandle = [];
 async function fetchAndDrawCupAndHandle(symbol, interval) {
   showSpinner();
   try {
-    const response = await fetch(
-      `/cup-and-handle?symbol=${symbol}&interval=${interval}`
-    );
+    const response = await fetch(`/cup-and-handle?symbol=${symbol}&interval=${interval}`);
     const cupAndHandleData = await response.json();
 
     // Clear existing cup-and-handle series
-    cupAndHandle.forEach((series) => chart.removeSeries(series));
+    cupAndHandle.forEach(series => chart.removeSeries(series));
     cupAndHandle = [];
 
-    cupAndHandleData.forEach((pattern) => {
-      if (pattern.type === "cup") {
+    cupAndHandleData.forEach(pattern => {
+      if (pattern.type === 'cup') {
         let cupSeries = chart.addLineSeries({
-          color: "purple",
+          color: 'purple',
           lineWidth: 2,
         });
         let cupData = pattern.x.map((x, index) => ({
           time: parseDateTimeToUnix(x),
-          value: pattern.y[index],
+          value: pattern.y[index]
         }));
         cupSeries.setData(cupData);
         cupAndHandle.push(cupSeries);
-      } else if (pattern.type === "handle") {
+      } else if (pattern.type === 'handle') {
         let handleSeries = chart.addLineSeries({
-          color: "red",
+          color: 'red',
           lineWidth: 2,
         });
         let handleData = [
           { time: parseDateTimeToUnix(pattern.x0), value: pattern.y0 },
-          { time: parseDateTimeToUnix(pattern.x1), value: pattern.y1 },
+          { time: parseDateTimeToUnix(pattern.x1), value: pattern.y1 }
         ];
         handleSeries.setData(handleData);
         cupAndHandle.push(handleSeries);
@@ -564,126 +566,124 @@ async function fetchAndDrawCupAndHandle(symbol, interval) {
 
     hideSpinner();
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Error:', error);
     hideSpinner();
   }
 }
 
 // Update the change event listener for the interval select
-document
-  .getElementById("interval-select")
-  .addEventListener("change", async (event) => {
-    const interval = event.target.value;
+document.getElementById('interval-select').addEventListener('change', async (event) => {
+  const interval = event.target.value;
 
-    // Find the selected stock row
-    const selectedRow = document.querySelector(".stock-row.selected");
-
-    if (selectedRow) {
-      const symbol = selectedRow.getAttribute("data-symbol");
-      fetchData(symbol, interval);
-      const lastCandle = await fetchData(symbol, interval);
-      if (lastCandle) {
-        currentOHLC[lastCandle.time] = lastCandle;
-        console.log(currentOHLC[lastCandle.time]);
-        console.log(lastCandle);
-      }
-      srLineSeries.forEach((series) => chart.removeSeries(series));
-      srLineSeries = [];
-      trendlineSeries.forEach((series) => chart.removeSeries(series));
-      trendlineSeries = [];
-      ibars.forEach((series) => chart.removeSeries(series));
-      ibars = [];
-      vShapes.forEach((series) => chart.removeSeries(series));
-      vShapes = [];
-      headAndShoulders.forEach((series) => chart.removeSeries(series));
-      headAndShoulders = [];
-      doubleTops.forEach((series) => chart.removeSeries(series));
-      doubleTops = [];
-      cupAndHandle.forEach((series) => chart.removeSeries(series));
-      cupAndHandle = [];
-      if (selectedOptions.includes("sup-res")) {
-        await fetchAndDrawSupportResistance(symbol, interval);
-      }
-      if (selectedOptions.includes("trlines")) {
-        await fetchAndDrawTrendlines(symbol, interval);
-      }
-      if (selectedOptions.includes("ibarss")) {
-        await fetchAndDrawIbars(symbol, interval);
-      }
-      if (selectedOptions.includes("vshape")) {
-        await fetchAndDrawVShapes(symbol, interval);
-      }
-      if (selectedOptions.includes("head-and-shoulders")) {
-        await fetchAndDrawHeadAndShoulders(symbol, interval);
-      }
-      if (selectedOptions.includes("double-tops")) {
-        await fetchAndDrawDoubleTops(symbol, interval);
-      }
-      if (selectedOptions.includes("cupandhandle")) {
-        await fetchAndDrawCupAndHandle(symbol, interval);
-      }
-      if (selectedOptions.includes("ema5")) {
-        await fetchAndDrawEma5(symbol, interval);
-      }
+  // Find the selected stock row
+  const selectedRow = document.querySelector('.stock-row.selected');
+  
+  if (selectedRow) {
+    const symbol = selectedRow.getAttribute('data-symbol');
+    fetchData(symbol, interval);
+    const lastCandle = await fetchData(symbol, interval);
+    if (lastCandle) {
+      currentOHLC[lastCandle.time] = lastCandle;
+      console.log(currentOHLC[lastCandle.time]);
+      console.log(lastCandle);
     }
-  });
+    srLineSeries.forEach(series => chart.removeSeries(series));
+    srLineSeries = [];
+    trendlineSeries.forEach(series => chart.removeSeries(series));
+    trendlineSeries = [];
+    ibars.forEach(series => chart.removeSeries(series));
+    ibars = [];
+    vShapes.forEach(series => chart.removeSeries(series));
+    vShapes = [];
+    headAndShoulders.forEach(series => chart.removeSeries(series));
+    headAndShoulders = [];
+    doubleTops.forEach(series => chart.removeSeries(series));
+    doubleTops = [];
+    cupAndHandle.forEach(series => chart.removeSeries(series));
+    cupAndHandle = [];
+    emaSeries.forEach(series => chart.removeSeries(series));
+    emaSeries = [];
+    if (selectedOptions.includes('sup-res')) {
+      await fetchAndDrawSupportResistance(symbol, interval);
+    }
+    if (selectedOptions.includes('trlines')) {
+      await fetchAndDrawTrendlines(symbol, interval);
+    }
+    if (selectedOptions.includes('ibarss')) {
+      await fetchAndDrawIbars(symbol, interval);
+    }
+    if (selectedOptions.includes('vshape')) {
+      await fetchAndDrawVShapes(symbol, interval);
+    }
+    if (selectedOptions.includes('head-and-shoulders')) {
+      await fetchAndDrawHeadAndShoulders(symbol, interval);
+    }
+    if (selectedOptions.includes('double-tops')) {
+      await fetchAndDrawDoubleTops(symbol, interval);
+    }
+    if (selectedOptions.includes('cupandhandle')) {
+      await fetchAndDrawCupAndHandle(symbol, interval);
+    }
+    if (selectedOptions.includes('ema')) {
+        await fetchAndDrawEma(symbol, interval);
+    }
+  }
+});
 
 // Search Button
 
-document.addEventListener("DOMContentLoaded", () => {
-  const searchButton = document.getElementById("search-button");
-  const searchPopup = document.getElementById("search-popup");
-  const closeButton = document.querySelector(".close-button");
-  const searchResults = document.getElementById("search-results");
-  let rows = document.querySelectorAll(".stock-row");
+document.addEventListener('DOMContentLoaded', () => {
+  const searchButton = document.getElementById('search-button');
+  const searchPopup = document.getElementById('search-popup');
+  const closeButton = document.querySelector('.close-button');
+  const searchResults = document.getElementById('search-results');
+  let rows = document.querySelectorAll('.stock-row');
 
   // Show search popup on button click
-  searchButton.addEventListener("click", () => {
-    searchPopup.style.display = "block";
+  searchButton.addEventListener('click', () => {
+    searchPopup.style.display = 'block';
     fetchStocks();
   });
 
+
+
   // Close search popup on button click
-  closeButton.addEventListener("click", () => {
-    searchPopup.style.display = "none";
+  closeButton.addEventListener('click', () => {
+    searchPopup.style.display = 'none';
   });
 
   // Close the popup when clicking outside of it
-  window.addEventListener("click", (event) => {
+  window.addEventListener('click', (event) => {
     if (event.target == searchPopup) {
-      searchPopup.style.display = "none";
+      searchPopup.style.display = 'none';
     }
   });
 
   // Fetch stock data from Flask endpoint
   function fetchStocks() {
-    fetch("/get_50_stocks") // Adjust the endpoint URL as necessary
-      .then((response) => response.json())
-      .then((data) => {
+    fetch('/get_50_stocks')  // Adjust the endpoint URL as necessary
+      .then(response => response.json())
+      .then(data => {
         displayStocks(data);
       })
-      .catch((error) => {
-        console.error("Error fetching stocks:", error);
+      .catch(error => {
+        console.error('Error fetching stocks:', error);
       });
   }
 
   // Display stocks in the search popup
   function displayStocks(stocks) {
-    searchResults.innerHTML = "";
-    const existingSymbols = new Set(
-      Array.from(rows).map((row) => row.getAttribute("data-symbol"))
-    );
+    searchResults.innerHTML = '';
+    const existingSymbols = new Set(Array.from(rows).map(row => row.getAttribute('data-symbol')));
     console.log(existingSymbols);
-    stocks.forEach((stock) => {
-      const stockItem = document.createElement("div");
-      stockItem.classList.add("stock-item");
-      stockItem.setAttribute("data-symbol", stock.value);
+    stocks.forEach(stock => {
+      const stockItem = document.createElement('div');
+      stockItem.classList.add('stock-item');
+      stockItem.setAttribute('data-symbol', stock.value);
 
       // Determine the button symbol based on whether the stock is already in the table
-      const buttonSymbol = existingSymbols.has(stock.value) ? "-" : "+";
-      const buttonClass = existingSymbols.has(stock.value)
-        ? "remove-stock-button"
-        : "add-stock-button";
+      const buttonSymbol = existingSymbols.has(stock.value) ? '-' : '+';
+      const buttonClass = existingSymbols.has(stock.value) ? 'remove-stock-button' : 'add-stock-button';
 
       stockItem.innerHTML = `
         <span>${stock.value} </span>
@@ -692,8 +692,8 @@ document.addEventListener("DOMContentLoaded", () => {
       searchResults.appendChild(stockItem);
 
       const actionButton = stockItem.querySelector(`.${buttonClass}`);
-      actionButton.addEventListener("click", () => {
-        if (buttonSymbol === "+") {
+      actionButton.addEventListener('click', () => {
+        if (buttonSymbol === '+') {
           addStockToTable(stock);
         } else {
           removeStockFromTable(stock);
@@ -703,21 +703,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function removeStockFromTable(stock) {
-    rows.forEach((row) => {
-      if (row.getAttribute("data-symbol") === stock.value) {
+    rows.forEach(row => {
+      if (row.getAttribute('data-symbol') === stock.value) {
         row.remove(); // Remove the stock row
       }
     });
-    rows = document.querySelectorAll(".stock-row");
+    rows = document.querySelectorAll('.stock-row');
   }
 
   // Add stock to the stock table
   function addStockToTable(stock) {
-    const tableBody = document.querySelector("#stock-table tbody");
-    const newRow = document.createElement("tr");
-    newRow.classList.add("stock-row");
-    newRow.setAttribute("data-symbol", stock.value);
-    newRow.setAttribute("onclick", "selectStock(this)");
+    const tableBody = document.querySelector('#stock-table tbody');
+    const newRow = document.createElement('tr');
+    newRow.classList.add('stock-row');
+    newRow.setAttribute('data-symbol', stock.value);
+    newRow.setAttribute('onclick', 'selectStock(this)');
     newRow.innerHTML = `
       <td>${stock.value}</td>
       <td class="last-price"></td>
@@ -725,144 +725,144 @@ document.addEventListener("DOMContentLoaded", () => {
       <td class="change-percentage"></td>
     `;
     tableBody.appendChild(newRow);
-    searchPopup.style.display = "none";
-    rows = document.querySelectorAll(".stock-row");
+    searchPopup.style.display = 'none';
+    rows = document.querySelectorAll('.stock-row');
     console.log(rows);
   }
+  
+  
 });
+
+
 
 let selectedOptions = [];
 
-document.getElementById("refresh-button").addEventListener("click", () => {
+document.getElementById('refresh-button').addEventListener('click', () => {
   chart.timeScale().resetTimeScale();
 });
-// Pattern Select Dropdown
-document.addEventListener("DOMContentLoaded", () => {
-  const dropdownHeader = document.getElementById("dropdown-header");
-  const dropdownContent = document.getElementById("dropdown-content");
-  const options = document.querySelectorAll(".option");
+// Pattern Select Dropdown 
+document.addEventListener('DOMContentLoaded', () => {
+  const dropdownHeader = document.getElementById('dropdown-header');
+  const dropdownContent = document.getElementById('dropdown-content');
+  const options = document.querySelectorAll('.option');
 
+ 
   // Toggle dropdown visibility on header click
-  dropdownHeader.addEventListener("click", () => {
-    dropdownContent.style.display =
-      dropdownContent.style.display === "block" ? "none" : "block";
+  dropdownHeader.addEventListener('click', () => {
+    dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
   });
 
   // Handle option click to toggle selection
-  options.forEach((option) => {
-    option.addEventListener("click", () => {
-      const value = option.getAttribute("data-value");
-      option.classList.toggle("selected");
+  options.forEach(option => {
+    option.addEventListener('click', () => {
+      const value = option.getAttribute('data-value');
+      option.classList.toggle('selected');
 
-      if (option.classList.contains("selected")) {
+      if (option.classList.contains('selected')) {
         selectedOptions.push(value);
       } else {
-        selectedOptions = selectedOptions.filter((item) => item !== value);
+        selectedOptions = selectedOptions.filter(item => item !== value);
       }
 
-      const selectedRow = document.querySelector(".stock-row.selected");
+      const selectedRow = document.querySelector('.stock-row.selected');
       if (selectedRow) {
-        const symbol = selectedRow.getAttribute("data-symbol");
-        const interval = document.getElementById("interval-select").value;
-        if (selectedOptions.includes("sup-res")) {
+        const symbol = selectedRow.getAttribute('data-symbol');
+        const interval = document.getElementById('interval-select').value;
+        if (selectedOptions.includes('sup-res')) {
           fetchAndDrawSupportResistance(symbol, interval);
-        } else {
-          srLineSeries.forEach((series) => chart.removeSeries(series));
+        }
+        else{
+          srLineSeries.forEach(series => chart.removeSeries(series));
           srLineSeries = [];
         }
-        if (selectedOptions.includes("trlines")) {
+        if (selectedOptions.includes('trlines')) {
           fetchAndDrawTrendlines(symbol, interval);
-        } else {
-          trendlineSeries.forEach((series) => chart.removeSeries(series));
+        }
+        else{
+          trendlineSeries.forEach(series => chart.removeSeries(series));
           trendlineSeries = [];
         }
-        if (selectedOptions.includes("ibarss")) {
+        if (selectedOptions.includes('ibarss')) {
           fetchAndDrawIbars(symbol, interval);
-        } else {
-          ibars.forEach((series) => chart.removeSeries(series));
+        }
+        else{
+          ibars.forEach(series => chart.removeSeries(series));
           ibars = [];
         }
-        if (selectedOptions.includes("head-and-shoulders")) {
+        if (selectedOptions.includes('head-and-shoulders')) {
           fetchAndDrawHeadAndShoulders(symbol, interval);
-        } else {
-          headAndShoulders.forEach((series) => chart.removeSeries(series));
+        }
+        else{
+          headAndShoulders.forEach(series => chart.removeSeries(series));
           headAndShoulders = [];
         }
-        if (selectedOptions.includes("double-tops")) {
+        if (selectedOptions.includes('double-tops')) {
           fetchAndDrawDoubleTops(symbol, interval);
-        } else {
-          doubleTops.forEach((series) => chart.removeSeries(series));
-          doubleTops = [];
         }
-        if (selectedOptions.includes("vshape")) {
+        else{
+          doubleTops.forEach(series => chart.removeSeries(series));
+          doubleTops = [];
+        } 
+        if (selectedOptions.includes('vshape')) {
           fetchAndDrawVShapes(symbol, interval);
-        } else {
-          vShapes.forEach((series) => chart.removeSeries(series));
+        }
+        else{
+          vShapes.forEach(series => chart.removeSeries(series));
           vShapes = [];
         }
-        if (selectedOptions.includes("cupandhandle")) {
+        if (selectedOptions.includes('cupandhandle')) {
           fetchAndDrawCupAndHandle(symbol, interval);
-        } else {
-          cupAndHandle.forEach((series) => chart.removeSeries(series));
+        }
+        else{
+          cupAndHandle.forEach(series => chart.removeSeries(series));
           cupAndHandle = [];
         }
-        if (selectedOptions.includes("ema5")) {
-          fetchAndDrawEma5(symbol, interval);
-        } else {
-          ema5Series.forEach((series) => chart.removeSeries(series));
-          ema5Series = [];
+        if (selectedOptions.includes('ema')) {
+          fetchAndDrawEma(symbol, interval);
+        }
+        else{
+          emaSeries.forEach(series => chart.removeSeries(series));
+          emaSeries = [];
         }
       }
+      
     });
   });
 
   // Close dropdown when clicking outside
-  window.addEventListener("click", (event) => {
-    if (
-      !dropdownHeader.contains(event.target) &&
-      !dropdownContent.contains(event.target)
-    ) {
-      dropdownContent.style.display = "none";
+  window.addEventListener('click', (event) => {
+    if (!dropdownHeader.contains(event.target) && !dropdownContent.contains(event.target)) {
+      dropdownContent.style.display = 'none';
     }
   });
-});
+}); 
 
 // Fullscreen button functionality
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
   const fullscreenButton = document.getElementById("fullscreen-button");
 
-  fullscreenButton.addEventListener("click", function () {
-    if (
-      !document.fullscreenElement && // alternative standard method
-      !document.mozFullScreenElement &&
-      !document.webkitFullscreenElement &&
-      !document.msFullscreenElement
-    ) {
+  fullscreenButton.addEventListener("click", function() {
+    if (!document.fullscreenElement &&    // alternative standard method
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {
       const element = document.documentElement; // Fullscreen the entire document
 
       if (element.requestFullscreen) {
         element.requestFullscreen();
-      } else if (element.mozRequestFullScreen) {
-        /* Firefox */
+      } else if (element.mozRequestFullScreen) { /* Firefox */
         element.mozRequestFullScreen();
-      } else if (element.webkitRequestFullscreen) {
-        /* Chrome, Safari and Opera */
+      } else if (element.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
         element.webkitRequestFullscreen();
-      } else if (element.msRequestFullscreen) {
-        /* IE/Edge */
+      } else if (element.msRequestFullscreen) { /* IE/Edge */
         element.msRequestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        /* Firefox */
+      } else if (document.mozCancelFullScreen) { /* Firefox */
         document.mozCancelFullScreen();
-      } else if (document.webkitExitFullscreen) {
-        /* Chrome, Safari and Opera */
+      } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
         document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        /* IE/Edge */
+      } else if (document.msExitFullscreen) { /* IE/Edge */
         document.msExitFullscreen();
       }
     }
@@ -870,15 +870,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Add hover info mouse move event listener
-chart.subscribeCrosshairMove(function (param) {
+chart.subscribeCrosshairMove(function(param) {
   if (!param || !param.time || !param.seriesData.size) {
-    hoverInfo.innerHTML = "";
+    hoverInfo.innerHTML = '';
     return;
   }
 
   const data = param.seriesData.get(candleSeries);
   if (!data) {
-    hoverInfo.innerHTML = "";
+    hoverInfo.innerHTML = '';
     return;
   }
 
@@ -899,16 +899,15 @@ chart.subscribeCrosshairMove(function (param) {
 
 // Initialize fetch data with the default selected row and interval
 window.onload = () => {
-  const selectedRow = document.querySelector(".stock-row.selected");
+  const selectedRow = document.querySelector('.stock-row.selected');
   if (selectedRow) {
-    const symbol = selectedRow.getAttribute("data-symbol");
-    const interval = document.getElementById("interval-select").value;
+    const symbol = selectedRow.getAttribute('data-symbol');
+    const interval = document.getElementById('interval-select').value;
     fetchData(symbol, interval);
   }
 };
 
-const accessTocken =
-  "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjIzMTI0MzAsImV4cCI6MTcyMjM4NTgxMCwibmJmIjoxNzIyMzEyNDMwLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXFHYnVqX3oxSVlGVGlFeHVfYTJVQkNFOU9yODdRMFJQOVZjTU8wRWpHR1pSNURNaWRFUXhwdkJMNEJoeUxwYmdIMVFqblFURkp4enE3MGp1UGk2SnFzdnBRZXA4TVA4WmxUS1BCQnN6Rzk1QWFhcz0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.qFC2Rb1tv-zGlO_b9uvWDuJApZ_sQkAKbFlEVrY9ZAM";
+const accessTocken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjIzMTI0MzAsImV4cCI6MTcyMjM4NTgxMCwibmJmIjoxNzIyMzEyNDMwLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXFHYnVqX3oxSVlGVGlFeHVfYTJVQkNFOU9yODdRMFJQOVZjTU8wRWpHR1pSNURNaWRFUXhwdkJMNEJoeUxwYmdIMVFqblFURkp4enE3MGp1UGk2SnFzdnBRZXA4TVA4WmxUS1BCQnN6Rzk1QWFhcz0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.qFC2Rb1tv-zGlO_b9uvWDuJApZ_sQkAKbFlEVrY9ZAM"
 
 var skt = fyersDataSocket.getInstance(accessTocken);
 
@@ -918,33 +917,37 @@ function roundTimeToInterval(unixTimestamp, intervalMinutes) {
   let hours = date.getHours();
 
   if (intervalMinutes === 30) {
-    if (minutes < 15) {
-      minutes = 45;
-      hours = hours - 1; // previous hour
-    } else if (minutes < 45) {
-      minutes = 15;
-    } else {
-      minutes = 45;
-    }
+      if (minutes < 15) {
+          minutes = 45;
+          hours = hours - 1; // previous hour
+      } else if (minutes < 45) {
+          minutes = 15;
+      } else {
+          minutes = 45;
+      }
   } else if (intervalMinutes === 60) {
-    if (minutes < 15) {
-      minutes = 15;
-      hours = hours - 1; // previous hour
-    } else {
-      minutes = 15;
-    }
+      if (minutes < 15) {
+          minutes = 15;
+          hours =  hours - 1; // previous hour
+      } else {
+          minutes = 15;
+      }
   } else {
-    minutes = Math.floor(minutes / intervalMinutes) * intervalMinutes;
+      minutes = Math.floor(minutes / intervalMinutes) * intervalMinutes;
   }
 
   date.setHours(hours);
   date.setMinutes(minutes, 0, 0);
-  return Math.floor(date.getTime() / 1000);
+  return Math.floor(date.getTime() / 1000) ;
 }
+
+
+
+
 
 // Function to update OHLC data
 function updateOHLC(ltp, time) {
-  const interval = document.getElementById("interval-select").value;
+  const interval = document.getElementById('interval-select').value;
   const roundedTime = roundTimeToInterval(time, interval);
 
   if (!currentOHLC[roundedTime]) {
@@ -956,10 +959,7 @@ function updateOHLC(ltp, time) {
       close: ltp,
     };
   } else {
-    currentOHLC[roundedTime].high = Math.max(
-      currentOHLC[roundedTime].high,
-      ltp
-    );
+    currentOHLC[roundedTime].high = Math.max(currentOHLC[roundedTime].high, ltp);
     currentOHLC[roundedTime].low = Math.min(currentOHLC[roundedTime].low, ltp);
     currentOHLC[roundedTime].close = ltp;
   }
@@ -971,12 +971,12 @@ function updateOHLC(ltp, time) {
 function onmsg(message) {
   const parsedData = message;
   // console.log(message);
-  const selectedRow = document.querySelector(".stock-row.selected");
-  const symbol = selectedRow.getAttribute("data-symbol");
+  const selectedRow = document.querySelector('.stock-row.selected');
+  const symbol = selectedRow.getAttribute('data-symbol');
   const row = document.querySelector(`tr[data-symbol="${symbol}"]`);
-  const lastPriceCell = row.querySelector(".last-price");
-  const changeCell = row.querySelector(".change");
-  const changePercentageCell = row.querySelector(".change-percentage");
+  const lastPriceCell = row.querySelector('.last-price');
+  const changeCell = row.querySelector('.change');
+  const changePercentageCell = row.querySelector('.change-percentage');
   if (parsedData.symbol === symbol) {
     const time = parsedData.exch_feed_time;
     const ltp = parsedData.ltp;
@@ -987,25 +987,26 @@ function onmsg(message) {
   }
 }
 
-skt.on("connect", function () {
-  const selectedRow = document.querySelector(".stock-row.selected");
-  const symbol = selectedRow.getAttribute("data-symbol");
-  skt.subscribe([symbol], false, 1);
-  skt.mode(skt.FullMode, 1);
-  console.log(skt.isConnected());
-  skt.autoreconnect();
+
+skt.on("connect", function() {
+    const selectedRow = document.querySelector('.stock-row.selected');
+    const symbol = selectedRow.getAttribute('data-symbol');
+    skt.subscribe([symbol], false, 1);
+    skt.mode(skt.FullMode, 1);
+    console.log(skt.isConnected());
+    skt.autoreconnect();
 });
 
-skt.on("message", function (message) {
-  onmsg(message);
+skt.on("message", function(message) {
+    onmsg(message);
 });
 
-skt.on("error", function (message) {
-  console.log("error is", message);
+skt.on("error", function(message) {
+    console.log("error is", message);
 });
 
-skt.on("close", function () {
-  console.log("socket closed");
+skt.on("close", function() {
+    console.log("socket closed");
 });
 
 skt.connect();
