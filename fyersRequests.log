@@ -3799,6 +3799,7 @@
 {"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-02 11:30:18,590+0530","service":"FyersAPIRequest"}
 {"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-02 11:30:24,607+0530","service":"FyersAPIRequest"}
 <<<<<<< HEAD
+<<<<<<< HEAD
 {"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-02 11:30:30,629+0530","service":"FyersAPIRequest"}
 {"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-02 11:30:36,577+0530","service":"FyersAPIRequest"}
 {"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-02 11:30:42,601+0530","service":"FyersAPIRequest"}
@@ -3893,3 +3894,10 @@
 {"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-03 14:39:37,588+0530","service":"FyersAPIRequest"}
 =======
 >>>>>>> parent of d3be573 (stable changes)
+=======
+>>>>>>> parent of d3be573 (stable changes)
+{"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":422,"API":"/history"},"timestamp":"2024-08-03 20:48:09,557+0530","service":"FyersAPIRequest"}
+{"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-03 20:49:02,999+0530","service":"FyersAPIRequest"}
+{"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-03 20:50:33,715+0530","service":"FyersAPIRequest"}
+{"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-03 20:50:49,436+0530","service":"FyersAPIRequest"}
+{"level":"DEBUG","location":"[get_call:136] fyersModel","message":{"Status Code":200,"API":"/history"},"timestamp":"2024-08-03 20:51:06,727+0530","service":"FyersAPIRequest"}
