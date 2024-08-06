@@ -169,13 +169,13 @@ import pandas as pd
 
 with open("abcd.txt", 'r') as r:
     access_token = r.read()
-# access_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjI0MDIyODEsImV4cCI6MTcyMjQ3MjI0MSwibmJmIjoxNzIyNDAyMjgxLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXFjWHBwcGRkcTYyZVJMZ2NfLXRNc3l4NDBHTkhzYTFhRlRWbVl3dHVjdXQtb1pfTGN0dGtWYVMzVUpSRTRJNE1VZ2wxd3JLTEE0ekpLYnQ2OGRmUUVnRjFPR0xwRUJzRm5UV3JMNEZFblpqc2hmTT0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.CK3ytWFz6VgNK3IgcxRhVdI5aDCaeGKaHYO9C_m2u-M'
+# access_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjI4MzA5MzcsImV4cCI6MTcyMjkwNDI1NywibmJmIjoxNzIyODMwOTM3LCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXNGQlpYWVdwdW5GTHJhYWpvRnFsZGdMUlVRbVdNUXpPaGZSNlIwSlhtNnVDdU5ZaUR3RkxiTVo2aXowNTFKZW5kaHRDc3dRbWpRSVJHZk1TTnlPMDIxck5jaWlCZHRkMzdFWHZfanZBZk51bUVyQT0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.GxWlrPGFjQ0apekow-TPIb-DmMGidl0DRNZ5N71Kuiw'
 client_id = "DZO41L3M36-100"
 fyers = fyersModel.FyersModel(
     client_id=client_id, is_async=False, token=access_token, log_path=os.getcwd())
     
 def read_stocks_from_file():
-    with open('50stocks.txt', "r") as f:
+    with open('200stocks.txt', "r") as f:
         lines = f.readlines()
         stocks = [{'label': line.strip(), 'value': line.strip()} for line in lines]
     return stocks
@@ -1393,6 +1393,7 @@ def fetch_latest_data(symbol):
     return rows
 
 dtime_datetime = dt.datetime.now()
+dtime_datetime += timedelta(hours=12, minutes=30)
 dtime = dtime_datetime.strftime("%Y-%m-%d")
 
 def fetch_currentday_data(symbol, interval):
