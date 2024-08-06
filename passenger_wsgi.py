@@ -1393,7 +1393,7 @@ def fetch_latest_data(symbol):
     return rows
 
 dtime_datetime = dt.datetime.now()
-dtime_datetime += timedelta(hours=12, minutes=30)
+# dtime_datetime += timedelta(hours=12, minutes=30)
 dtime = dtime_datetime.strftime("%Y-%m-%d")
 
 def fetch_currentday_data(symbol, interval):
