@@ -9,6 +9,7 @@ import pandas as pd
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import plotly.graph_objects as go
 import numpy as np
 from plotly.subplots import make_subplots
@@ -52,7 +53,7 @@ import pyotp
 import mysql.connector
 
 sys.path.insert(0, os.path.dirname(__file__))
-
+print('i')
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 users = {'admin': {'password': 'user98440', 'role': 'admin'},
@@ -1322,10 +1323,52 @@ def news_page():
     return render_template('news.html',
                            livemint_data=livemint_html,
                            usi_data=usi_html)
+                           
+dtime_datetime = dt.datetime.now()
+dtime_datetime += timedelta(hours=12, minutes=30)
+dtime = dtime_datetime.strftime("%Y-%m-%d")
 
+def fetch_from_fyers(symbol,interval):
+    prev = dt.datetime.strptime(dtime,"%Y-%m-%d")
+    if interval == '1':
+        prev_date = prev - relativedelta(months=1)
+    else:
+        prev_date = prev - relativedelta(months=2)
+    prev_date = prev_date.strftime("%Y-%m-%d")
+    data = {
+            "symbol": symbol,
+            "resolution": interval,
+            "date_format": "1",
+            "range_from": prev_date,
+            "range_to": dtime,
+            "cont_flag": "1"
+        }
+    df = fyers.history(data=data)
+    if df['s'] == 'no_data':
+        return []
+    df = pd.DataFrame(df['candles'])
+    df.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+    df['date'] = pd.to_datetime(df['date'], unit='s')
+    df.date = (df.date.dt.tz_localize('UTC').dt.tz_convert('Asia/Kolkata'))
+    df['date'] = df['date'].dt.tz_localize(None)
+    df_sorted = df.sort_values(by=['date'], ascending=True)
+    df = df_sorted.drop_duplicates(subset='date', keep='first')
+    df.reset_index(drop=True, inplace=True)
+    df = df[-5000:].reset_index(drop=True)
+    df['date'] = df['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    data = df.rename(columns={
+        'date': 'Date',
+        'open': 'Open',
+        'high': 'High',
+        'low': 'Low',
+        'close': 'Close'
+    }).to_dict(orient='records')
+    return data
 
 def fetch_data_from_db(symbol, interval):
 
+    if interval == '3' or interval == '1':
+        return fetch_from_fyers(symbol,interval)
     con = mysql.connector.connect(**db_config3)
     cur = con.cursor()
     sym = symbol
@@ -1335,7 +1378,7 @@ def fetch_data_from_db(symbol, interval):
     cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'stocks'")
     tables = cur.fetchall()
     tables = [table[0] for table in tables]
-    if sym not in tables or interval == '1' or interval == '3':
+    if sym not in tables :
         return []
     # Example SQL query (adjust as per your schema)
     query = f"""
@@ -1392,9 +1435,7 @@ def fetch_latest_data(symbol):
     con.close()
     return rows
 
-dtime_datetime = dt.datetime.now()
-# dtime_datetime += timedelta(hours=12, minutes=30)
-dtime = dtime_datetime.strftime("%Y-%m-%d")
+
 
 def fetch_currentday_data(symbol, interval):
     interval = int(interval)
@@ -1642,7 +1683,7 @@ def graph():
 @app.route('/stock-data')
 def get_data():
     symbol = request.args.get('symbol', 'NSE:NIFTY50-INDEX')
-    interval = int(request.args.get('interval', '5'))
+    interval = request.args.get('interval', '5')
     # Fetch data from database
     data1 = fetch_data_from_db(symbol, interval)
     if compare_db_current_date(symbol):
@@ -1924,25 +1965,52 @@ def get_inside_bars():
     df = pd.DataFrame(data)
     df['Date'] = pd.to_datetime(df['Date'])
 
-    def detect_consecutive_ibars(df):
+    def detect_consecutive_ibars(df, max_inside_bars=12, height_ratio_threshold=0.6, similar_height_threshold=0.4, max_similar_height=2, body_to_wick_ratio=0.7):
         consecutive_ibars = [False] * len(df)
-        for i in range(len(df)-1):
+        i = 0
+        while i < len(df) - 1:
             previous_candle = df.iloc[i]
+            main_height = previous_candle['High'] - previous_candle['Low']
+            main_body = abs(previous_candle['Open'] - previous_candle['Close'])
+            main_wick = main_height - main_body
+
+            # Check if the body is significantly larger than the wicks
+            if main_wick == 0 or main_body / main_wick < body_to_wick_ratio:
+                i += 1
+                continue
+
+            # Start looking for inside bars after the current candle
             j = i + 1
             count = 0
+            similar_height_count = 0
+            tall_inside_count = 0
             while j < len(df) and \
                 (df.iloc[j]['High'] < previous_candle['High']) and \
                 (df.iloc[j]['Low'] > previous_candle['Low']) and \
                 (df.iloc[j]['Close'] < previous_candle['High']) and \
                 (df.iloc[j]['Open'] > previous_candle['Low']):
                 
+                inside_height = df.iloc[j]['High'] - df.iloc[j]['Low']
+                if inside_height >= main_height * height_ratio_threshold:
+                    similar_height_count += 1
+                    if similar_height_count > max_similar_height:
+                        break
+
+                if inside_height >= main_height * similar_height_threshold:
+                    tall_inside_count += 1
+
                 count += 1
                 j += 1
             
-            if count > 3:
-                for k in range(i+1, j):
-                    consecutive_ibars[k] = True
-                consecutive_ibars[i] = True
+            # Check if the count of inside bars is within the allowed limit
+            if count > 3 and count <= max_inside_bars and similar_height_count <= max_similar_height:
+                if tall_inside_count / count < 0.5:  # Check if less than 50% of inside bars are tall
+                    for k in range(i+1, j):
+                        consecutive_ibars[k] = True
+                    # Mark the larger candlestick as well
+                    consecutive_ibars[i] = True
+            # Move index to the end of the current sequence
+            i = j if count == 0 else i + 1
                     
         return consecutive_ibars
 

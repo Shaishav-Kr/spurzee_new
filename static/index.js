@@ -1,3 +1,5 @@
+const accessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjMwOTU4MDAsImV4cCI6MTcyMzE2MzQyMCwibmJmIjoxNzIzMDk1ODAwLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXRGcjRWSGhScGFOWnNQQ0VNZ3VQalltRVU3bnhFVFEtU3FSMVpBYUp1S1g4QjNUZ0RCQUUyOVhoOXdIYllfZ1FUU0YxbXIxbjR1OTRjVFJkN19CdklqdUlkbC13cHJGYmFkbWJ0dWJKYzVzYTVBND0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.G6b1TIdSttuQdDn83dkpd9p2l3dkmhGEwDJ4Pa9yJT4";
+
 const chartProperties = {
   timeScale: {
     timeVisible: true,
@@ -68,6 +70,7 @@ async function fetchData(symbol, interval) {
       low: parseFloat(d.Low),
       close: parseFloat(d.Close)
     }));
+    console.log(data);
     candleSeries.setData(cdata);
     const lastCandle = cdata[cdata.length - 1];
     hideSpinner();
@@ -156,11 +159,6 @@ async function selectStock(row) {
 }
 let emaSeries = {};
 
-// Utility function to parse date time to Unix timestamp
-function parseDateTimeToUnix(dateTimeStr) {
-  const date = new Date(dateTimeStr);
-  return Math.floor(date.getTime() / 1000);
-}
 
 // Fetch and draw EMA data
 async function fetchAndDrawEma(symbol, interval) {
@@ -317,7 +315,7 @@ async function fetchAndDrawTrendlines(symbol, interval) {
       // chart.addAnnotation({
       //   time: (x0 + x1) / 2,
       //   price: (y0 + y1) / 2,
-      //   // text: `${angle.toFixed(2)}鴔節,
+      //   // text: `${angle.toFixed(2)}째`,
       //   // color: linecolor,
       // });
       
@@ -913,9 +911,7 @@ window.onload = () => {
   }
 };
 
-const accessTocken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhcGkuZnllcnMuaW4iLCJpYXQiOjE3MjI5MTUzMjEsImV4cCI6MTcyMjk5MDYyMSwibmJmIjoxNzIyOTE1MzIxLCJhdWQiOlsieDowIiwieDoxIiwieDoyIiwiZDoxIiwiZDoyIiwieDoxIiwieDowIl0sInN1YiI6ImFjY2Vzc190b2tlbiIsImF0X2hhc2giOiJnQUFBQUFCbXNabjVJQV9taGFybG9tRzBJenNGX3dNQ1BLcEQtSTNIV1RpRTRqejRweVZOQUU1YWNfQ19wb29ybmo1U29lQUlZY29zTGtYaWtuNnFQM1VWNWhPUy0xLUIzY0dyMVM2VzhtOWt0djI0U3NiZUEwdz0iLCJkaXNwbGF5X25hbWUiOiJMT0tFU0ggVEFMTFVSSSIsIm9tcyI6IksxIiwiaHNtX2tleSI6IjgzZmZjNDBhNDBhNmMzMmVhODEyZmZlNjg4MDg2ZjA2NGE2NTU4OGU5NTEyNjdhOTA4MDQzMjU3IiwiZnlfaWQiOiJZTDAwMTM3IiwiYXBwVHlwZSI6MTAwLCJwb2FfZmxhZyI6Ik4ifQ.psCXMPtjoaMWXm_zfBYr7kljQL4OQslLIH2ymSXGQPU"
-
-var skt = fyersDataSocket.getInstance(accessTocken);
+var skt = fyersDataSocket.getInstance(accessToken);
 
 function roundTimeToInterval(unixTimestamp, intervalMinutes) {
   const date = new Date((unixTimestamp + 5.5 * 60 * 60) * 1000);
