@@ -159,6 +159,11 @@ async function selectStock(row) {
 }
 let emaSeries = {};
 
+// Utility function to parse date time to Unix timestamp
+function parseDateTimeToUnix(dateTimeStr) {
+  const date = new Date(dateTimeStr);
+  return Math.floor(date.getTime() / 1000);
+}
 
 // Fetch and draw EMA data
 async function fetchAndDrawEma(symbol, interval) {
